@@ -201,7 +201,7 @@ let DATA = INIT_DATA;
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
-  if(r.SEASON==='Projects') return 'Projects';
+  if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(r.STORET==='Sacoor') return 'Brothers';
   if(['Blue','BlueOut','One'].includes(r.STORET)) return 'Blue';
   if(['Club','Outlet'].includes(r.STORET)) return 'Outlet';
