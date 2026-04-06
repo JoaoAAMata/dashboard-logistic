@@ -248,6 +248,9 @@ function processRows(rows, fname) {
     const[marca,cat,gen,loja]=k.split('|'); return{marca,cat,gen,loja,stock:v};
   }).sort((a,b)=>b.stock-a.stock).slice(0,800);
   DATA.lojas=[...new Set(valid.map(r=>r.STORE).filter(Boolean))].sort();
+  const genderRaw={};
+  valid.forEach(r=>{ genderRaw[r.BRAND]=(genderRaw[r.BRAND]||0)+r.STOCK; });
+  DATA.gender=genderRaw;
   const top10={};
   ['Brothers','Outlet','Blue','One'].forEach(b=>{
     const sub=valid.filter(r=>r._brand===b);
@@ -356,9 +359,7 @@ function renderBars() {
 }
 
 function renderGender() {
-  const refs = DATA.refs;
-  const rawMap = {};
-  refs.forEach(r=>{ rawMap[r.gen]=(rawMap[r.gen]||0)+r.stock; });
+  const rawMap = DATA.gender||{};
   // combinar Kids Boy + Kids Girl em Kids
   const genMap = {
     'S MAN':   rawMap['S MAN']||0,
