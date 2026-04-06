@@ -357,15 +357,21 @@ function renderBars() {
 
 function renderGender() {
   const refs = DATA.refs;
-  const genMap = {};
-  refs.forEach(r=>{ genMap[r.gen]=(genMap[r.gen]||0)+r.stock; });
+  const rawMap = {};
+  refs.forEach(r=>{ rawMap[r.gen]=(rawMap[r.gen]||0)+r.stock; });
+  // combinar Kids Boy + Kids Girl em Kids
+  const genMap = {
+    'S MAN':   rawMap['S MAN']||0,
+    'S WOMAN': rawMap['S WOMAN']||0,
+    'S UNISEX':rawMap['S UNISEX']||0,
+    'S KIDS':  (rawMap['S KIDS BOY']||0)+(rawMap['S KIDS GIRL']||0),
+  };
   const total = Object.values(genMap).reduce((s,v)=>s+v,0);
   const GENS = [
-    ['S MAN','Man','#185FA5'],
-    ['S WOMAN','Woman','#D85A30'],
+    ['S MAN',   'Man',   '#185FA5'],
+    ['S WOMAN', 'Woman', '#D85A30'],
     ['S UNISEX','Unisex','#534AB7'],
-    ['S KIDS BOY','Kids Boy','#1D9E75'],
-    ['S KIDS GIRL','Kids Girl','#BA7517'],
+    ['S KIDS',  'Kids',  '#1D9E75'],
   ].filter(([key])=>genMap[key]);
 
   document.getElementById('gender-grid').innerHTML = GENS.map(([key,lbl,c])=>{
