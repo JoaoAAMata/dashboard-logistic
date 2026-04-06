@@ -201,14 +201,14 @@ let DATA = INIT_DATA;
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
-  if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(r.STORET==='Sacoor') return 'Brothers';
   if(['Blue','BlueOut','One'].includes(r.STORET)) return 'Blue';
   if(['Club','Outlet'].includes(r.STORET)) return 'Outlet';
   if(['SacoorOnl','Warehouse'].includes(r.STORET)) {
+    if(['BLUE','ONE'].includes(r.TYPE)) return 'Blue';
     if(['OUTLET','KIDS'].includes(r.TYPE)) return 'Outlet';
-    if(['ONE','BLUE'].includes(r.TYPE)) return 'Blue';
     if(r.TYPE==='SACOOR') {
+      if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
       return BROTHERS_SEASONS.includes(r.SEASON) ? 'Brothers' : 'Outlet';
     }
   }
