@@ -126,7 +126,7 @@ function classifyBrand(r) {
     if(['OUTLET','KIDS'].includes(r.TYPE)) return 'Outlet';
     if(r.TYPE==='SACOOR') {
       if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
-      return 'Brothers';
+      return BROTHERS_SEASONS.includes(r.SEASON) ? 'Brothers' : 'Outlet';
     }
   }
   return null;
