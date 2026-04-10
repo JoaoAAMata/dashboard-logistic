@@ -363,11 +363,10 @@ function setupChips(id,key){
   });
 }
 setupChips('f-brand','brand');setupChips('f-gen','gen');
-// Auto-restore from shared raw rows if this dashboard has no saved data yet
+// Always restore from shared raw rows (single upload updates all dashboards)
 (function(){
-  const hasDash=localStorage.getItem('logDash_detail');
   const hasRaw=localStorage.getItem('logDash_raw');
-  if(!hasDash&&hasRaw){const r=loadRawRows();if(r)processRows(r.rows,r.fname);else renderAll();}
+  if(hasRaw){const r=loadRawRows();if(r)processRows(r.rows,r.fname);else renderAll();}
   else renderAll();
 })();
 </script>
