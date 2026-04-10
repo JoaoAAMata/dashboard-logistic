@@ -92,15 +92,19 @@ function saveRawRows(rows, fname) {
       e:r.SEASON||'',f:r.DESIGN||'',g:Number(r.STOCK)||0,
       h:Number(r.PVP)||0,i:r.REF||'',j:r.COLOR||'',k:r.SIZE||''
     }));
-    localStorage.setItem('logDash_raw', JSON.stringify(slim));
-    localStorage.setItem('logDash_rawFname', fname||'');
-  } catch(e) {}
+    // Use sessionStorage (persists across pages in same tab, no 5MB localStorage limit issues)
+    sessionStorage.setItem('logDash_raw', JSON.stringify(slim));
+    sessionStorage.setItem('logDash_rawFname', fname||'');
+  } catch(e) {
+    // If sessionStorage also fails (very large file), save just the fname so date still updates
+    try { sessionStorage.setItem('logDash_rawFname', fname||''); } catch(e2) {}
+  }
 }
 
 function loadRawRows() {
   try {
-    const s=localStorage.getItem('logDash_raw'); if(!s) return null;
-    const fname=localStorage.getItem('logDash_rawFname')||'';
+    const s=sessionStorage.getItem('logDash_raw'); if(!s) return null;
+    const fname=sessionStorage.getItem('logDash_rawFname')||'';
     const rows=JSON.parse(s).map(r=>({
       STORE:r.a,STORET:r.b,BRAND:r.c,TYPE:r.d,SEASON:r.e,
       DESIGN:r.f,STOCK:r.g,PVP:r.h,REF:r.i,COLOR:r.j,SIZE:r.k
@@ -244,7 +248,7 @@ function renderTop10() {
 }
 // Always restore from shared raw rows (single upload updates all dashboards)
 (function(){
-  const hasRaw=localStorage.getItem('logDash_raw');
+  const hasRaw=sessionStorage.getItem('logDash_raw');
   if(hasRaw){const r=loadRawRows();if(r)processRows(r.rows,r.fname);else renderAll();}
   else renderAll();
 })();
