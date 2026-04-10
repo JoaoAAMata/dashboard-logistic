@@ -206,6 +206,30 @@ const EXCL_STORES = ['Corp-MY','MY-LOGGM-DHL-DEF','UNIF-MY'];
 // Seasons (coluna SEASON) consideradas Brothers quando TYPE = SACOOR
 // Todas as restantes seasons com TYPE = SACOOR → Outlet
 const BROTHERS_SEASONS = ['SUMMER 26','WINTER 25','NOOS'];
+
+function saveRawRows(rows, fname) {
+  try {
+    const slim=rows.filter(r=>(Number(r.STOCK)||0)>0).map(r=>({
+      a:r.STORE||'',b:r.STORET||'',c:r.BRAND||'',d:r.TYPE||'',
+      e:r.SEASON||'',f:r.DESIGN||'',g:Number(r.STOCK)||0,
+      h:Number(r.PVP)||0,i:r.REF||'',j:r.COLOR||'',k:r.SIZE||''
+    }));
+    localStorage.setItem('logDash_raw', JSON.stringify(slim));
+    localStorage.setItem('logDash_rawFname', fname||'');
+  } catch(e) {}
+}
+
+function loadRawRows() {
+  try {
+    const s=localStorage.getItem('logDash_raw'); if(!s) return null;
+    const fname=localStorage.getItem('logDash_rawFname')||'';
+    const rows=JSON.parse(s).map(r=>({
+      STORE:r.a,STORET:r.b,BRAND:r.c,TYPE:r.d,SEASON:r.e,
+      DESIGN:r.f,STOCK:r.g,PVP:r.h,REF:r.i,COLOR:r.j,SIZE:r.k
+    }));
+    return {rows,fname};
+  } catch(e) { return null; }
+}
 // ──────────────────────────────────────────────────────────
 
 let DATA = (()=>{ try{ const s=localStorage.getItem('logDash_units'); return s?JSON.parse(s):INIT_DATA; }catch(e){return INIT_DATA;} })();
@@ -292,7 +316,7 @@ function loadExcel(e) {
     try{
       const wb=XLSX.read(ev.target.result,{type:'binary'});
       const ws=wb.Sheets[wb.SheetNames[0]];
-      processRows(XLSX.utils.sheet_to_json(ws,{defval:''}), file.name);
+      const rawRows=XLSX.utils.sheet_to_json(ws,{defval:''});saveRawRows(rawRows,file.name);processRows(rawRows, file.name);
     }catch(err){alert('Error: '+err.message);}
   };
   reader.readAsBinaryString(file);
@@ -433,6 +457,12 @@ function renderGenderByBrand() {
     </table>`;
 }
 
-renderAll();
+// Auto-restore from shared raw rows if this dashboard has no saved data yet
+(function(){
+  const hasDash=localStorage.getItem('logDash_units');
+  const hasRaw=localStorage.getItem('logDash_raw');
+  if(!hasDash&&hasRaw){const r=loadRawRows();if(r)processRows(r.rows,r.fname);else renderAll();}
+  else renderAll();
+})();
 </script>
 </body></html>
