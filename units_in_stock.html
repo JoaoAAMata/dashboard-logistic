@@ -188,6 +188,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <div class="card-title">Stock by Gender</div>
     <div class="gender-grid" id="gender-grid"></div>
   </div>
+  <div class="card" style="margin-top:14px">
+    <div class="card-title">Gender breakdown by brand</div>
+    <div id="gender-by-brand"></div>
+  </div>
 
 </div>
 
@@ -251,6 +255,18 @@ function processRows(rows, fname) {
   const genderRaw={};
   valid.forEach(r=>{ genderRaw[r.BRAND]=(genderRaw[r.BRAND]||0)+r.STOCK; });
   DATA.gender=genderRaw;
+  const genderByBrand={};
+  ['Brothers','Outlet','Blue','Projects','One'].forEach(b=>{
+    genderByBrand[b]={man:0,woman:0,kids:0};
+  });
+  valid.forEach(r=>{
+    const b=r._brand; if(!genderByBrand[b]) return;
+    const g=r.BRAND||'';
+    if(g==='S MAN') genderByBrand[b].man+=r.STOCK;
+    else if(g==='S WOMAN') genderByBrand[b].woman+=r.STOCK;
+    else if(g==='S KIDS BOY'||g==='S KIDS GIRL') genderByBrand[b].kids+=r.STOCK;
+  });
+  DATA.genderByBrand=genderByBrand;
   const top10={};
   ['Brothers','Outlet','Blue','One'].forEach(b=>{
     const sub=valid.filter(r=>r._brand===b);
@@ -289,6 +305,7 @@ function renderAll() {
   renderDonut();
   renderBars();
   renderGender();
+  renderGenderByBrand();
 }
 
 function renderKPI() {
@@ -383,6 +400,36 @@ function renderGender() {
       <div class="gen-pct">${pct}% of total</div>
     </div>`;
   }).join('');
+}
+
+function renderGenderByBrand() {
+  const d=DATA.genderByBrand||{};
+  const BRANDS=[['Brothers','#185FA5'],['Outlet','#1D9E75'],['Blue','#BA7517'],['Projects','#534AB7'],['One','#E76F51']];
+  const el=document.getElementById('gender-by-brand');
+  if(!el) return;
+  el.innerHTML=`
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="color:var(--text3);font-size:11px">
+        <th style="text-align:left;padding:6px 0;font-weight:500">Brand</th>
+        <th style="text-align:right;padding:6px 8px;font-weight:500;color:#185FA5">Man</th>
+        <th style="text-align:right;padding:6px 8px;font-weight:500;color:#D85A30">Women</th>
+        <th style="text-align:right;padding:6px 8px;font-weight:500;color:#1D9E75">Kids</th>
+      </tr></thead>
+      <tbody>${BRANDS.map(([b,c])=>{
+        const row=d[b]||{man:0,woman:0,kids:0};
+        const tot=(DATA.kpi[b]||0)||1;
+        const barW=Math.round((row.man/tot)*100);
+        return `<tr style="border-top:.5px solid var(--border)">
+          <td style="padding:7px 0;display:flex;align-items:center;gap:7px">
+            <div style="width:8px;height:8px;border-radius:50%;background:${c};flex-shrink:0"></div>
+            <span style="font-weight:500">${b}</span>
+          </td>
+          <td style="text-align:right;padding:7px 8px;font-weight:600">${row.man>0?fmtN(row.man):'—'}</td>
+          <td style="text-align:right;padding:7px 8px;font-weight:600">${row.woman>0?fmtN(row.woman):'—'}</td>
+          <td style="text-align:right;padding:7px 8px;font-weight:600">${row.kids>0?fmtN(row.kids):'—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
 }
 
 renderAll();
