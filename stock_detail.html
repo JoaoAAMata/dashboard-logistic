@@ -144,8 +144,8 @@ const BRAND_COLORS = {Brothers:'#185FA5',Outlet:'#1D9E75',Blue:'#BA7517',Project
 const CAT_COLORS = {Collection:'#185FA5',NOOS:'#1D9E75',Leftovers:'#888780','Cleaning 1':'#D85A30','Cleaning 2':'#E24B4A',Projects:'#534AB7'};
 const EXCL_STORES = ['Corp-MY','MY-LOGGM-DHL-DEF','UNIF-MY'];
 const BROTHERS_SEASONS = ['SUMMER 26','WINTER 25','NOOS'];
-let DATA = INIT_DATA;
-let ALL_VALID = [];
+let DATA = (()=>{ try{ const s=localStorage.getItem('logDash_detail'); return s?JSON.parse(s):INIT_DATA; }catch(e){return INIT_DATA;} })();
+let ALL_VALID = (()=>{ try{ const s=localStorage.getItem('logDash_detail_rows'); return s?JSON.parse(s):[]; }catch(e){return [];} })();
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
@@ -200,6 +200,11 @@ function processRows(rows, fname) {
   if(m){const s=m[1];DATA.date=s.slice(6)+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(s.slice(4,6))-1]+' '+s.slice(0,4);}
   else DATA.date=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
   document.getElementById('date-lbl').textContent=DATA.date||'';
+  try{ localStorage.setItem('logDash_detail', JSON.stringify(DATA)); }catch(e){}
+  try{
+    const slim=ALL_VALID.map(r=>({b:r._brand,c:r._cat,sc:r._seasonCat,g:r.BRAND,st:r.STORE,k:r.STOCK,p:Number(r.PVP)||0,r:(r.REF||'')+(r.COLOR?'|'+r.COLOR:''),sz:r.SIZE||''}));
+    localStorage.setItem('logDash_detail_rows', JSON.stringify(slim));
+  }catch(e){}
   renderAll();
 }
 
@@ -238,6 +243,10 @@ function buildFilters() {
 }
 
 function renderDetail() {
+  // Normalize slim restored rows if needed
+  if(ALL_VALID.length && ALL_VALID[0].b!==undefined && ALL_VALID[0]._brand===undefined) {
+    ALL_VALID=ALL_VALID.map(r=>({_brand:r.b,_cat:r.c,_seasonCat:r.sc,BRAND:r.g,STORE:r.st,STOCK:r.k,PVP:r.p,REF:r.r?r.r.split('|')[0]:'',COLOR:r.r?r.r.split('|')[1]||'':'',SIZE:r.sz}));
+  }
   let rows;
   if(ALL_VALID.length) {
     rows=ALL_VALID.filter(r=>

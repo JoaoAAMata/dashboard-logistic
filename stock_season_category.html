@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -89,7 +89,7 @@ const BRAND_COLORS = {Brothers:'#185FA5',Outlet:'#1D9E75',Blue:'#BA7517',Project
 const CAT_COLORS = {Collection:'#185FA5',NOOS:'#1D9E75',Leftovers:'#888780','Cleaning 1':'#D85A30','Cleaning 2':'#E24B4A',Projects:'#534AB7'};
 const EXCL_STORES = ['Corp-MY','MY-LOGGM-DHL-DEF','UNIF-MY'];
 const BROTHERS_SEASONS = ['SUMMER 26','WINTER 25','NOOS'];
-let DATA = INIT_DATA;
+let DATA = (()=>{ try{ const s=localStorage.getItem('logDash_season'); return s?JSON.parse(s):INIT_DATA; }catch(e){return INIT_DATA;} })();
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
@@ -168,6 +168,7 @@ function processRows(rows, fname) {
   if(m){const s=m[1];DATA.date=s.slice(6)+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(s.slice(4,6))-1]+' '+s.slice(0,4);}
   else DATA.date=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
   document.getElementById('date-lbl').textContent=DATA.date||'';
+  try{ localStorage.setItem('logDash_season', JSON.stringify(DATA)); }catch(e){}
   renderAll();
 }
 
