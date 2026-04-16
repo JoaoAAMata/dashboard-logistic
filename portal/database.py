@@ -95,7 +95,7 @@ STORES = [
      "Pavilion Kuala Lumpur Mall, Lot No. 4.01.03 & 4.01.04, Level 4, 55100 Kuala Lumpur",
                                                                                "Kuala Lumpur",  "Malaysia", 0),
 
-    ("SUNONE",  "SUNONE - Sunway Pyramid Brothers",          "sunone",
+    ("MSUN",    "MSUN - Sunway Pyramid Brothers",             "msun",
      "Sunway Pyramid, Unit G1.06, Bandar Sunway, 47500 Petaling Jaya",        "Selangor",      "Malaysia", 0),
 
     # ── Admin — Logistics HQ ──────────────────────────────────────────────────
