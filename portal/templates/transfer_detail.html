@@ -57,6 +57,7 @@
     <div class="info-item"><span class="info-label">Delivery Date</span><span class="info-value">{{ transfer.delivery_date }}</span></div>
     <div class="info-item"><span class="info-label">Total Pieces</span><span class="info-value">{{ transfer.total_pcs }}</span></div>
     <div class="info-item"><span class="info-label">Total Cartons</span><span class="info-value">{{ transfer.total_ctn }}</span></div>
+    <div class="info-item"><span class="info-label">Total Railings</span><span class="info-value">{{ transfer.total_rln or 0 }}</span></div>
   </div>
 
   <table class="table" style="margin-top:1rem">
@@ -107,8 +108,12 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Total Cartons</label>
-        <input type="number" name="total_ctn" min="1" value="{{ transfer.total_ctn }}" required/>
+        <label>Total Cartons (Ctn)</label>
+        <input type="number" name="total_ctn" min="0" value="{{ transfer.total_ctn }}"/>
+      </div>
+      <div class="form-group">
+        <label>Total Railings (Rln)</label>
+        <input type="number" name="total_rln" min="0" value="{{ transfer.total_rln or 0 }}"/>
       </div>
       <div class="form-group">
         <label>Collection Date</label>

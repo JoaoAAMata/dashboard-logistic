@@ -193,7 +193,7 @@ def generate_pdf(transfer: dict) -> bytes:
     elements.append(info_table)
 
     # ── 3. DESTINATION ADDRESS ────────────────────────────────────────────────
-    addr = (f"{transfer['to_address']}, "
+    addr = (f"{transfer['to_store_name']}, {transfer['to_address']}, "
             f"{transfer['to_city']}, {transfer['to_country']}")
     addr_row = Table([[
         _p("DELIVER TO:", size=7, bold=True, color=GREY_DARK),
@@ -254,6 +254,7 @@ def generate_pdf(transfer: dict) -> bytes:
 
     # ── 5. SIGNATURE AREA ─────────────────────────────────────────────────────
     def sig_block(label):
+        col_w = (W / 3) - 0.8 * cm
         return Table([
             [_p(label, size=8, bold=True, color=CHARCOAL)],
             [Spacer(1, 1.2 * cm)],
@@ -262,19 +263,20 @@ def generate_pdf(transfer: dict) -> bytes:
             [Spacer(1, 0.5 * cm)],
             [HRFlowable(width="60%", thickness=0.5, color=GREY_BD, spaceAfter=2)],
             [_p("Date", size=7, color=GREY_DARK)],
-        ], colWidths=[(W / 2) - 1 * cm])
+        ], colWidths=[col_w])
 
     sig_table = Table(
-        [[sig_block("Prepared by:"), sig_block("Received by:")]],
-        colWidths=[W / 2, W / 2],
+        [[sig_block("Sender:"), sig_block("Transport:"), sig_block("Receiver:")]],
+        colWidths=[W / 3, W / 3, W / 3],
     )
     sig_table.setStyle(TableStyle([
-        ("BOX",         (0, 0), (-1, -1), 0.8, GREY_BD),
-        ("LINEBEFORE",  (1, 0), (1, 0),   0.8, GREY_BD),
-        ("TOPPADDING",  (0, 0), (-1, -1), 10),
-        ("BOTTOMPADDING",(0,0), (-1, -1), 10),
-        ("LEFTPADDING", (0, 0), (-1, -1), 14),
-        ("VALIGN",      (0, 0), (-1, -1), "TOP"),
+        ("BOX",          (0, 0), (-1, -1), 0.8, GREY_BD),
+        ("LINEBEFORE",   (1, 0), (1, 0),   0.8, GREY_BD),
+        ("LINEBEFORE",   (2, 0), (2, 0),   0.8, GREY_BD),
+        ("TOPPADDING",   (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING",(0, 0), (-1, -1), 10),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 14),
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
     ]))
     elements.append(sig_table)
 
@@ -384,12 +386,13 @@ def generate_decoration_pdf(transfer: dict) -> bytes:
         _p("Total<br/>Pcs",                  **label_s),
         _p("Total<br/>Ctn",                  **label_s),
     ]
+    rln = str(transfer.get("total_rln") or 0)
     values = [
         _p(_fmt_date(transfer["collection_date"]), **value_s),
         _p(transfer["from_store_name"],            **value_s),
         _p(_fmt_date(transfer["delivery_date"]),   **value_s),
         _p(transfer["to_store_name"],              **value_s),
-        _p("",  size=9, color=DARK, align=TA_CENTER),
+        _p(rln if rln != "0" else "",              **value_s),
         _p(str(transfer["total_pcs"]),             **value_s),
         _p(str(transfer["total_ctn"]),             **value_s),
     ]
@@ -406,7 +409,7 @@ def generate_decoration_pdf(transfer: dict) -> bytes:
     elements.append(info_table)
 
     # ── Address ───────────────────────────────────────────────────────────────
-    addr = (f"{transfer['to_address']}, {transfer['to_city']}, {transfer['to_country']}")
+    addr = (f"{transfer['to_store_name']}, {transfer['to_address']}, {transfer['to_city']}, {transfer['to_country']}")
     addr_row = Table([[
         _p("DELIVER TO:", size=7, bold=True, color=GREY_DARK),
         _p(addr, size=8, color=DARK),

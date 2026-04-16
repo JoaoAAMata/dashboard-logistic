@@ -169,7 +169,8 @@ async def submit_transfer(request: Request):
     to_store_id     = int(form.get("to_store_id", 0))
     collection_date = form.get("collection_date", "")
     delivery_date   = form.get("delivery_date", "")
-    total_ctn       = int(form.get("total_ctn", 1))
+    total_ctn       = int(form.get("total_ctn", 0) or 0)
+    total_rln       = int(form.get("total_rln", 0) or 0)
     form_type       = form.get("form_type", "commercial")
 
     tg_numbers   = form.getlist("tg_numbers")
@@ -220,6 +221,7 @@ async def submit_transfer(request: Request):
         delivery_date=delivery_date,
         total_pcs=sum(l["qty"] for l in lines),
         total_ctn=total_ctn,
+        total_rln=total_rln,
         lines=lines,
         form_type=form_type,
     )
@@ -303,7 +305,8 @@ async def edit_transfer(request: Request, tid: int):
     to_store_id     = int(form.get("to_store_id", 0))
     collection_date = form.get("collection_date", "")
     delivery_date   = form.get("delivery_date", "")
-    total_ctn       = int(form.get("total_ctn", 1))
+    total_ctn       = int(form.get("total_ctn", 0) or 0)
+    total_rln       = int(form.get("total_rln", 0) or 0)
 
     tg_numbers   = form.getlist("tg_numbers")
     descriptions = form.getlist("descriptions")
@@ -339,7 +342,7 @@ async def edit_transfer(request: Request, tid: int):
         except (ValueError, IndexError):
             pass
 
-    database.update_transfer(tid, to_store_id, collection_date, delivery_date, total_ctn, lines)
+    database.update_transfer(tid, to_store_id, collection_date, delivery_date, total_ctn, total_rln, lines)
     return RedirectResponse(f"/logistics/transfer/{tid}?edited=1", status_code=302)
 
 

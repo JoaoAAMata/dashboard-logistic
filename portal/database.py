@@ -77,6 +77,7 @@ def init_db():
             delivery_date   TEXT NOT NULL,
             total_pcs       INTEGER DEFAULT 0,
             total_ctn       INTEGER DEFAULT 0,
+            total_rln       INTEGER DEFAULT 0,
             status          TEXT DEFAULT 'pending',
             rejection_reason TEXT,
             submitted_at    TEXT NOT NULL,
@@ -89,6 +90,12 @@ def init_db():
     # Add form_type column if upgrading from older DB
     try:
         c.execute("ALTER TABLE transfers ADD COLUMN form_type TEXT DEFAULT 'commercial'")
+    except Exception:
+        pass
+
+    # Add total_rln column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE transfers ADD COLUMN total_rln INTEGER DEFAULT 0")
     except Exception:
         pass
 
@@ -174,17 +181,17 @@ def _next_collection_no(conn) -> str:
 
 
 def create_transfer(from_store_id, to_store_id, collection_date, delivery_date,
-                    total_pcs, total_ctn, lines: list, form_type: str = "commercial"):
+                    total_pcs, total_ctn, total_rln, lines: list, form_type: str = "commercial"):
     conn = get_conn()
     collect_no = _next_collection_no(conn)
 
     now = datetime.utcnow().isoformat()
     cur = conn.execute(
         """INSERT INTO transfers (collect_no, form_type, from_store_id, to_store_id,
-           collection_date, delivery_date, total_pcs, total_ctn, status, submitted_at)
-           VALUES (?,?,?,?,?,?,?,?,'pending',?)""",
+           collection_date, delivery_date, total_pcs, total_ctn, total_rln, status, submitted_at)
+           VALUES (?,?,?,?,?,?,?,?,?,'pending',?)""",
         (collect_no, form_type, from_store_id, to_store_id,
-         collection_date, delivery_date, total_pcs, total_ctn, now)
+         collection_date, delivery_date, total_pcs, total_ctn, total_rln, now)
     )
     transfer_id = cur.lastrowid
 
@@ -279,15 +286,15 @@ def update_transfer_status(transfer_id: int, status: str, reason: str = None):
 
 
 def update_transfer(transfer_id: int, to_store_id: int, collection_date: str,
-                    delivery_date: str, total_ctn: int, lines: list):
+                    delivery_date: str, total_ctn: int, total_rln: int, lines: list):
     conn = get_conn()
     total_pcs = sum(l["qty"] for l in lines)
     now = datetime.utcnow().isoformat()
 
     conn.execute("""
         UPDATE transfers SET to_store_id=?, collection_date=?, delivery_date=?,
-        total_pcs=?, total_ctn=?, updated_at=? WHERE id=?
-    """, (to_store_id, collection_date, delivery_date, total_pcs, total_ctn, now, transfer_id))
+        total_pcs=?, total_ctn=?, total_rln=?, updated_at=? WHERE id=?
+    """, (to_store_id, collection_date, delivery_date, total_pcs, total_ctn, total_rln, now, transfer_id))
 
     conn.execute("DELETE FROM transfer_lines WHERE transfer_id = ?", (transfer_id,))
     for line in lines:
