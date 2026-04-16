@@ -39,6 +39,7 @@ def redirect(url: str, **cookie_args):
 @app.on_event("startup")
 async def startup():
     database.init_db()
+    database.auto_archive_old_transfers()
 
 
 # ── Root ──────────────────────────────────────────────────────────────────────
@@ -155,11 +156,23 @@ async def store_dashboard(request: Request):
         return RedirectResponse("/logistics")
     if s.get("is_transporter"):
         return RedirectResponse("/transporter")
+    database.auto_archive_old_transfers()
     transfers = database.get_transfers_by_store(s["store_id"])
     incoming  = database.get_incoming_transfers(s["store_id"])
     return templates.TemplateResponse("store_dashboard.html", {
         "request": request, "session": s,
         "transfers": transfers, "incoming": incoming,
+    })
+
+
+@app.get("/store/archived", response_class=HTMLResponse)
+async def store_archived_page(request: Request):
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    archived = database.get_archived_transfers(s["store_id"])
+    return templates.TemplateResponse("store_archived.html", {
+        "request": request, "session": s, "archived": archived,
     })
 
 

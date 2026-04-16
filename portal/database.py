@@ -216,6 +216,12 @@ def init_db():
     except Exception:
         pass
 
+    # Add is_archived column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE transfers ADD COLUMN is_archived INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
     # Add is_transporter column if upgrading from older DB
     try:
         c.execute("ALTER TABLE stores ADD COLUMN is_transporter INTEGER DEFAULT 0")
@@ -354,7 +360,7 @@ def get_transfers_by_store(store_id: int):
         SELECT t.*, s.store_name as to_store_name
         FROM transfers t
         JOIN stores s ON s.id = t.to_store_id
-        WHERE t.from_store_id = ?
+        WHERE t.from_store_id = ? AND t.is_archived = 0
         ORDER BY t.submitted_at DESC
     """, (store_id,)).fetchall()
     conn.close()
@@ -481,7 +487,7 @@ def get_incoming_transfers(store_id: int):
         SELECT t.*, s.store_name as from_store_name
         FROM transfers t
         JOIN stores s ON s.id = t.from_store_id
-        WHERE t.to_store_id = ? AND t.status IN ('approved', 'warehouse', 'completed', 'incorrect')
+        WHERE t.to_store_id = ? AND t.status IN ('approved', 'warehouse', 'completed', 'incorrect') AND t.is_archived = 0
         ORDER BY t.delivery_date ASC
     """, (store_id,)).fetchall()
     conn.close()
@@ -532,3 +538,35 @@ def update_transporter_status(transfer_id: int, status: str, warehouse_date: str
         )
     conn.commit()
     conn.close()
+
+
+def auto_archive_old_transfers():
+    """Archive completed/incorrect transfers older than 15 days."""
+    conn = get_conn()
+    conn.execute("""
+        UPDATE transfers SET is_archived = 1
+        WHERE status IN ('completed', 'incorrect')
+        AND is_archived = 0
+        AND updated_at IS NOT NULL
+        AND (JULIANDAY('now') - JULIANDAY(SUBSTR(updated_at, 1, 10))) >= 15
+    """)
+    conn.commit()
+    conn.close()
+
+
+def get_archived_transfers(store_id: int):
+    """Returns archived transfers for a store (as origin or destination)."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT t.*,
+               sf.store_name as from_store_name,
+               st.store_name as to_store_name
+        FROM transfers t
+        JOIN stores sf ON sf.id = t.from_store_id
+        JOIN stores st ON st.id = t.to_store_id
+        WHERE (t.from_store_id = ? OR t.to_store_id = ?)
+        AND t.is_archived = 1
+        ORDER BY t.updated_at DESC
+    """, (store_id, store_id)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

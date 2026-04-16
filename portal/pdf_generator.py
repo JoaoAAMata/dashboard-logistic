@@ -165,8 +165,8 @@ def generate_pdf(transfer: dict) -> bytes:
         _p("Delivery Date<br/>(dd/mm/yy)",   **label_s),
         _p("Deliver TO",                     **label_s),
         _p("Total Railing",                  **label_s),
-        _p("Total<br/>Pcs",                  **label_s),
         _p("Total<br/>Ctn",                  **label_s),
+        _p("Total<br/>Pcs",                  **label_s),
     ]
     rln = str(transfer.get("total_rln") or 0)
     values = [
@@ -175,8 +175,8 @@ def generate_pdf(transfer: dict) -> bytes:
         _p(_fmt_date(transfer["delivery_date"]),   **value_s),
         _p(transfer["to_store_name"],              **value_s),
         _p(rln if rln != "0" else "",              **value_bk),
-        _p(str(transfer["total_pcs"]),             **value_s),
         _p(str(transfer["total_ctn"]),             **value_s),
+        _p(str(transfer["total_pcs"]),             **value_s),
     ]
 
     info_table = Table([labels, values], colWidths=cw)
@@ -384,8 +384,8 @@ def generate_decoration_pdf(transfer: dict) -> bytes:
         _p("Delivery Date<br/>(dd/mm/yy)",   **label_s),
         _p("Deliver TO",                     **label_s),
         _p("Total Railing",                  **label_s),
-        _p("Total<br/>Pcs",                  **label_s),
         _p("Total<br/>Ctn",                  **label_s),
+        _p("Total<br/>Pcs",                  **label_s),
     ]
     rln = str(transfer.get("total_rln") or 0)
     values = [
@@ -394,8 +394,8 @@ def generate_decoration_pdf(transfer: dict) -> bytes:
         _p(_fmt_date(transfer["delivery_date"]),   **value_s),
         _p(transfer["to_store_name"],              **value_s),
         _p(rln if rln != "0" else "",              **value_s),
-        _p(str(transfer["total_pcs"]),             **value_s),
         _p(str(transfer["total_ctn"]),             **value_s),
+        _p(str(transfer["total_pcs"]),             **value_s),
     ]
     info_table = Table([labels, values], colWidths=cw)
     info_table.setStyle(TableStyle([

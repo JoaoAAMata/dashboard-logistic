@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Archived Transfers{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🗂 Archived Transfers</h1>
+    <p class="text-muted">Transfers completed more than 15 days ago</p>
+  </div>
+  <a href="/store" class="btn btn-secondary">← Back</a>
+</div>
+
+{% if archived %}
+<div class="card" style="padding:0;overflow-x:auto">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Collection No</th>
+        <th>Type</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Collection Date</th>
+        <th>Delivery Date</th>
+        <th>Pcs</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in archived %}
+      <tr>
+        <td><strong>{{ t.collect_no }}</strong></td>
+        <td>
+          <span class="badge badge-type-{{ t.form_type or 'commercial' }}">
+            {% if t.form_type == 'decoration' %}🎨 Decoration{% else %}📦 Stock{% endif %}
+          </span>
+        </td>
+        <td class="text-sm">{{ t.from_store_name }}</td>
+        <td class="text-sm">{{ t.to_store_name }}</td>
+        <td>{{ t.collection_date }}</td>
+        <td>{{ t.delivery_date }}</td>
+        <td>{{ t.total_pcs }}</td>
+        <td>
+          <span class="badge badge-{{ t.status }}">
+            {% if t.status == 'completed' %}📦 Completed
+            {% elif t.status == 'incorrect' %}⚠️ Incorrect
+            {% else %}{{ t.status }}{% endif %}
+          </span>
+        </td>
+        <td>
+          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No archived transfers yet.</p>
+</div>
+{% endif %}
+{% endblock %}
