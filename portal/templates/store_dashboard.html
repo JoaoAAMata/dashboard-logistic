@@ -72,4 +72,57 @@
   <a href="/store/new" class="btn btn-primary">Create first transfer</a>
 </div>
 {% endif %}
+
+<!-- Incoming transfers -->
+<div style="margin-top:2rem">
+  <div class="page-header" style="margin-bottom:.75rem">
+    <div>
+      <h2 style="font-size:1.1rem;margin:0">📥 Incoming Transfers</h2>
+      <p class="text-muted" style="margin:.25rem 0 0">Approved transfers coming to your store</p>
+    </div>
+  </div>
+
+  {% if incoming %}
+  <div class="card">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Collection No</th>
+          <th>Type</th>
+          <th>From</th>
+          <th>Collection Date</th>
+          <th>Delivery Date</th>
+          <th>Pieces</th>
+          <th>Cartons</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in incoming %}
+        <tr>
+          <td><strong>{{ t.collect_no }}</strong></td>
+          <td>
+            <span class="badge badge-type-{{ t.form_type or 'commercial' }}">
+              {% if t.form_type == 'decoration' %}🎨 Decoration{% else %}📦 Stock{% endif %}
+            </span>
+          </td>
+          <td>{{ t.from_store_name }}</td>
+          <td>{{ t.collection_date }}</td>
+          <td>{{ t.delivery_date }}</td>
+          <td>{{ t.total_pcs }}</td>
+          <td>{{ t.total_ctn }}</td>
+          <td>
+            <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:1.5rem">
+    <p style="color:var(--muted)">No incoming transfers at this time.</p>
+  </div>
+  {% endif %}
+</div>
 {% endblock %}

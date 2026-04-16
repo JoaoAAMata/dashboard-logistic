@@ -394,3 +394,42 @@ def update_transfer(transfer_id: int, to_store_id: int, collection_date: str,
 
     conn.commit()
     conn.close()
+
+
+def get_all_transfers_with_lines():
+    """Like get_all_transfers() but also attaches transfer_lines to each record."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT t.*,
+               sf.store_name as from_store_name,
+               st.store_name as to_store_name
+        FROM transfers t
+        JOIN stores sf ON sf.id = t.from_store_id
+        JOIN stores st ON st.id = t.to_store_id
+        ORDER BY t.submitted_at DESC
+    """).fetchall()
+    transfers = []
+    for row in rows:
+        t = dict(row)
+        lines = conn.execute(
+            "SELECT * FROM transfer_lines WHERE transfer_id = ? ORDER BY id",
+            (t["id"],)
+        ).fetchall()
+        t["lines"] = [dict(l) for l in lines]
+        transfers.append(t)
+    conn.close()
+    return transfers
+
+
+def get_incoming_transfers(store_id: int):
+    """Returns approved transfers whose destination is this store."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT t.*, s.store_name as from_store_name
+        FROM transfers t
+        JOIN stores s ON s.id = t.from_store_id
+        WHERE t.to_store_id = ? AND t.status = 'approved'
+        ORDER BY t.delivery_date ASC
+    """, (store_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

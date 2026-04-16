@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, Response, UploadFile, File
-from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from typing import List, Optional
@@ -138,8 +138,10 @@ async def store_dashboard(request: Request):
     if s["is_admin"]:
         return RedirectResponse("/logistics")
     transfers = database.get_transfers_by_store(s["store_id"])
+    incoming  = database.get_incoming_transfers(s["store_id"])
     return templates.TemplateResponse("store_dashboard.html", {
-        "request": request, "session": s, "transfers": transfers
+        "request": request, "session": s,
+        "transfers": transfers, "incoming": incoming,
     })
 
 
@@ -277,6 +279,51 @@ async def transfer_detail(request: Request, tid: int):
     })
 
 
+@app.get("/logistics/export.csv")
+async def export_csv(request: Request):
+    import csv, io
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+
+    transfers = database.get_all_transfers_with_lines()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Collection No", "Type", "Origin", "Destination",
+        "Collection Date", "Delivery Date",
+        "TG Numbers", "Descriptions",
+        "Total Pcs", "Total Ctn", "Total Rln",
+        "Status", "Submitted",
+    ])
+    for t in transfers:
+        tg_nos  = " | ".join(l["tg_number"]   for l in t["lines"] if l.get("tg_number"))
+        descs   = " | ".join(l["description"]  for l in t["lines"] if l.get("description"))
+        writer.writerow([
+            t["collect_no"],
+            t.get("form_type", "commercial"),
+            t["from_store_name"],
+            t["to_store_name"],
+            t["collection_date"],
+            t["delivery_date"],
+            tg_nos,
+            descs,
+            t["total_pcs"],
+            t["total_ctn"],
+            t.get("total_rln", 0),
+            t["status"],
+            t["submitted_at"][:10],
+        ])
+
+    filename = f"sacoor-logistics-{date.today().isoformat()}.csv"
+    return Response(
+        content=output.getvalue().encode("utf-8-sig"),  # BOM for Excel
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @app.post("/logistics/transfer/{tid}/approve")
 async def approve(request: Request, tid: int):
     s = get_session(request)
@@ -293,6 +340,22 @@ async def reject(request: Request, tid: int, reason: str = Form("")):
         return RedirectResponse("/login")
     database.update_transfer_status(tid, "rejected", reason)
     return RedirectResponse(f"/logistics/transfer/{tid}?rejected=1", status_code=302)
+
+
+@app.post("/logistics/bulk-approve")
+async def bulk_approve(request: Request):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    form = await request.form()
+    ids = form.getlist("transfer_ids")
+    for tid in ids:
+        try:
+            database.update_transfer_status(int(tid), "approved")
+        except Exception:
+            pass
+    approved_count = len(ids)
+    return RedirectResponse(f"/logistics?bulk_approved={approved_count}", status_code=302)
 
 
 @app.post("/logistics/transfer/{tid}/edit")
