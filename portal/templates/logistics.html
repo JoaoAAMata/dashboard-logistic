@@ -105,23 +105,23 @@
 </div>
 
 <!-- Table -->
-<div class="card" style="padding:0;overflow:hidden">
+<div class="card" style="padding:0; overflow-x:auto">
   {% if transfers %}
-  <table class="table" id="transfers-table">
+  <table class="table" id="transfers-table" style="min-width:1000px">
     <thead>
       <tr>
-        <th style="width:36px"><input type="checkbox" id="select-all" title="Select all pending" onchange="toggleAll(this)"/></th>
-        <th class="sortable" onclick="sortTable(1)">Collection No <span class="sort-icon">↕</span></th>
+        <th style="width:32px"><input type="checkbox" id="select-all" title="Select all pending" onchange="toggleAll(this)"/></th>
+        <th class="sortable" onclick="sortTable(1)" style="white-space:nowrap">Collection No <span class="sort-icon">↕</span></th>
         <th class="sortable" onclick="sortTable(2)">Type <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(3)">Origin <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(4)">Destination <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(5)">Collection Date <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(6)">Delivery Date <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(3)" style="min-width:140px">Origin <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(4)" style="min-width:140px">Destination <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(5)" style="white-space:nowrap">Collect <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(6)" style="white-space:nowrap">Delivery <span class="sort-icon">↕</span></th>
         <th>Pcs</th>
         <th>Ctn</th>
-        <th class="sortable" onclick="sortTable(9)">Status <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(10)">Submitted <span class="sort-icon">↕</span></th>
-        <th style="width:130px"></th>
+        <th class="sortable" onclick="sortTable(9)" style="min-width:110px">Status <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(10)" style="white-space:nowrap">Submitted <span class="sort-icon">↕</span></th>
+        <th style="width:120px"></th>
       </tr>
     </thead>
     <tbody id="transfers-body">
@@ -144,8 +144,8 @@
             {% if t.form_type == 'decoration' %}🎨 Deco{% else %}📦 Stock{% endif %}
           </span>
         </td>
-        <td class="text-sm">{{ t.from_store_name }}</td>
-        <td class="text-sm">{{ t.to_store_name }}</td>
+        <td class="text-sm store-cell" title="{{ t.from_store_name }}">{{ t.from_store_name }}</td>
+        <td class="text-sm store-cell" title="{{ t.to_store_name }}">{{ t.to_store_name }}</td>
         <td>{{ t.collection_date }}</td>
         <td>{{ t.delivery_date }}</td>
         <td>{{ t.total_pcs }}</td>
@@ -208,8 +208,11 @@
 th.sorted-asc .sort-icon::after  { content:'▲'; opacity:1; }
 th.sorted-desc .sort-icon::after { content:'▼'; opacity:1; }
 
+/* Store name truncation */
+.store-cell { max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
 /* Row actions */
-.row-actions { display:flex; gap:.3rem; align-items:center; }
+.row-actions { display:flex; gap:.3rem; align-items:center; flex-wrap:nowrap; }
 .btn-danger-soft { background:#fff0f0; color:var(--red); border:1px solid #fcc; }
 .btn-danger-soft:hover { background:var(--red); color:#fff; }
 
