@@ -161,7 +161,7 @@
           </td>
           {% else %}
           <td><input type="text" name="tg_numbers" value="{{ line.tg_number }}" required/></td>
-          <td><input type="text" name="descriptions" value="{{ line.description }}" readonly class="input-readonly"/></td>
+          <td><input type="text" name="descriptions" value="{{ line.description }}" placeholder="Description"/></td>
           <td><input type="text" name="uoms" value="{{ line.uom }}" readonly class="input-readonly input-sm"/></td>
           <td><input type="number" name="quantities" value="{{ line.qty }}" min="1" required class="input-sm" oninput="updateTotal()"/></td>
           {% endif %}

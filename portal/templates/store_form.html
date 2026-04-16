@@ -71,7 +71,7 @@
       <tbody id="commercial-body">
         <tr class="line-row">
           <td><input type="text" name="tg_numbers" placeholder="e.g. 342/2026/9608"/></td>
-          <td><input type="text" name="descriptions" value="Stock Rotation by Email" readonly class="input-readonly"/></td>
+          <td><input type="text" name="descriptions" value="Stock Rotation by Email" placeholder="Description"/></td>
           <td><input type="text" name="uoms" value="Pcs" readonly class="input-readonly input-sm"/></td>
           <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm" oninput="updateTotal('commercial')"/></td>
           <td><button type="button" class="btn-remove" onclick="removeLine(this,'commercial')">✕</button></td>
@@ -192,7 +192,7 @@ function addCommercialLine() {
   row.className = 'line-row';
   row.innerHTML = `
     <td><input type="text" name="tg_numbers" placeholder="e.g. 342/2026/9608"/></td>
-    <td><input type="text" name="descriptions" value="Stock Rotation by Email" readonly class="input-readonly"/></td>
+    <td><input type="text" name="descriptions" value="Stock Rotation by Email" placeholder="Description"/></td>
     <td><input type="text" name="uoms" value="Pcs" readonly class="input-readonly input-sm"/></td>
     <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm" oninput="updateTotal('commercial')"/></td>
     <td><button type="button" class="btn-remove" onclick="removeLine(this,'commercial')">✕</button></td>`;
