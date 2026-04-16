@@ -293,28 +293,37 @@ async def export_csv(request: Request):
     writer.writerow([
         "Collection No", "Type", "Origin", "Destination",
         "Collection Date", "Delivery Date",
-        "TG Numbers", "Descriptions",
+        "TG Number", "Description", "UOM", "Qty",
         "Total Pcs", "Total Ctn", "Total Rln",
         "Status", "Submitted",
     ])
     for t in transfers:
-        tg_nos  = " | ".join(l["tg_number"]   for l in t["lines"] if l.get("tg_number"))
-        descs   = " | ".join(l["description"]  for l in t["lines"] if l.get("description"))
-        writer.writerow([
+        common = [
             t["collect_no"],
             t.get("form_type", "commercial"),
             t["from_store_name"],
             t["to_store_name"],
             t["collection_date"],
             t["delivery_date"],
-            tg_nos,
-            descs,
+        ]
+        tail = [
             t["total_pcs"],
             t["total_ctn"],
             t.get("total_rln", 0),
             t["status"],
             t["submitted_at"][:10],
-        ])
+        ]
+        if t["lines"]:
+            for line in t["lines"]:
+                writer.writerow(common + [
+                    line.get("tg_number", ""),
+                    line.get("description", ""),
+                    line.get("uom", ""),
+                    line.get("qty", ""),
+                ] + tail)
+        else:
+            # transfer with no lines — still export one row
+            writer.writerow(common + ["", "", "", ""] + tail)
 
     filename = f"sacoor-logistics-{date.today().isoformat()}.csv"
     return Response(
