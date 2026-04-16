@@ -481,7 +481,7 @@ def get_incoming_transfers(store_id: int):
         SELECT t.*, s.store_name as from_store_name
         FROM transfers t
         JOIN stores s ON s.id = t.from_store_id
-        WHERE t.to_store_id = ? AND t.status IN ('approved', 'completed', 'incorrect')
+        WHERE t.to_store_id = ? AND t.status IN ('approved', 'warehouse', 'completed', 'incorrect')
         ORDER BY t.delivery_date ASC
     """, (store_id,)).fetchall()
     conn.close()

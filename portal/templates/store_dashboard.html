@@ -45,12 +45,15 @@
         <td>{{ t.total_pcs }}</td>
         <td>{{ t.total_ctn }}</td>
         <td><span class="badge badge-{{ t.status }}">
-          {% if t.status == 'pending' %}Pending
-          {% elif t.status == 'approved' %}Approved
-          {% else %}Rejected{% endif %}
+          {% if t.status == 'pending' %}⏳ Pending
+          {% elif t.status == 'approved' %}✅ Approved
+          {% elif t.status == 'warehouse' %}🏭 At Warehouse
+          {% elif t.status == 'completed' %}📦 Completed
+          {% elif t.status == 'incorrect' %}⚠️ Incorrect
+          {% else %}❌ Rejected{% endif %}
         </span></td>
         <td>
-          {% if t.status == 'approved' %}
+          {% if t.status != 'pending' and t.status != 'rejected' %}
           <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
           {% endif %}
         </td>
