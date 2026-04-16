@@ -4,6 +4,10 @@ from datetime import datetime
 
 import os as _os
 DB_PATH = _os.environ.get("DB_PATH", "logistics.db")
+# Ensure the parent directory exists (needed when using a Railway Volume path like /data/logistics.db)
+_db_dir = _os.path.dirname(DB_PATH)
+if _db_dir:
+    _os.makedirs(_db_dir, exist_ok=True)
 
 DEFAULT_PIN = "1234"
 
