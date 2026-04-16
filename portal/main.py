@@ -153,6 +153,8 @@ async def store_dashboard(request: Request):
         return RedirectResponse("/login")
     if s["is_admin"]:
         return RedirectResponse("/logistics")
+    if s.get("is_transporter"):
+        return RedirectResponse("/transporter")
     transfers = database.get_transfers_by_store(s["store_id"])
     incoming  = database.get_incoming_transfers(s["store_id"])
     return templates.TemplateResponse("store_dashboard.html", {
@@ -415,6 +417,7 @@ async def transporter_dashboard(request: Request):
     return templates.TemplateResponse("transporter_dashboard.html", {
         "request": request, "session": s,
         "transfers": transfers, "counts": counts,
+        "today": date.today().isoformat(),
     })
 
 
@@ -423,7 +426,9 @@ async def mark_warehouse(request: Request, tid: int):
     s = get_session(request)
     if not s or not s.get("is_transporter"):
         return RedirectResponse("/login")
-    database.update_transporter_status(tid, "warehouse")
+    form = await request.form()
+    warehouse_date = form.get("warehouse_date", date.today().isoformat())
+    database.update_transporter_status(tid, "warehouse", warehouse_date)
     return RedirectResponse("/transporter?warehouse=1", status_code=302)
 
 
@@ -513,9 +518,10 @@ async def download_pdf(request: Request, tid: int):
     transfer = database.get_transfer_detail(tid)
     if not transfer:
         return RedirectResponse("/")
-    # Stores can only download their own approved transfers
-    if not s["is_admin"] and transfer["from_store_id"] != s["store_id"]:
-        return RedirectResponse("/store")
+    # Transporters can download any transfer; stores only their own
+    if not s["is_admin"] and not s.get("is_transporter"):
+        if transfer["from_store_id"] != s["store_id"] and transfer["to_store_id"] != s["store_id"]:
+            return RedirectResponse("/store")
 
     if transfer.get("form_type") == "decoration":
         pdf_bytes = pdf_generator.generate_decoration_pdf(transfer)

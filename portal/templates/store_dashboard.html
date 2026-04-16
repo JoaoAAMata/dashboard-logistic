@@ -94,7 +94,8 @@
           <th>Delivery Date</th>
           <th>Pieces</th>
           <th>Cartons</th>
-          <th></th>
+          <th>Warehouse</th>
+          <th>Received</th>
           <th>Receipt</th>
         </tr>
       </thead>
@@ -112,6 +113,8 @@
           <td>{{ t.delivery_date }}</td>
           <td>{{ t.total_pcs }}</td>
           <td>{{ t.total_ctn }}</td>
+          <td class="text-sm text-muted">{{ t.warehouse_date or '—' }}</td>
+          <td class="text-sm text-muted">{{ t.receipt_date or '—' }}</td>
           <td>
             <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
           </td>

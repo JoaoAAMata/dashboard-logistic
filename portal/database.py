@@ -204,6 +204,18 @@ def init_db():
     except Exception:
         pass
 
+    # Add warehouse_date column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE transfers ADD COLUMN warehouse_date TEXT")
+    except Exception:
+        pass
+
+    # Add receipt_date column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE transfers ADD COLUMN receipt_date TEXT")
+    except Exception:
+        pass
+
     # Add is_transporter column if upgrading from older DB
     try:
         c.execute("ALTER TABLE stores ADD COLUMN is_transporter INTEGER DEFAULT 0")
@@ -479,9 +491,10 @@ def get_incoming_transfers(store_id: int):
 def update_receipt_status(transfer_id: int, status: str, note: str = ""):
     """Mark a transfer as completed or incorrect (receipt confirmation by store or logistics)."""
     conn = get_conn()
+    receipt_date = datetime.utcnow().strftime("%Y-%m-%d")
     conn.execute(
-        "UPDATE transfers SET status = ?, receipt_note = ?, updated_at = ? WHERE id = ?",
-        (status, note or "", datetime.utcnow().isoformat(), transfer_id)
+        "UPDATE transfers SET status = ?, receipt_note = ?, receipt_date = ?, updated_at = ? WHERE id = ?",
+        (status, note or "", receipt_date, datetime.utcnow().isoformat(), transfer_id)
     )
     conn.commit()
     conn.close()
@@ -504,12 +517,18 @@ def get_transfers_for_transporter():
     return [dict(r) for r in rows]
 
 
-def update_transporter_status(transfer_id: int, status: str):
+def update_transporter_status(transfer_id: int, status: str, warehouse_date: str = None):
     """Transporter marks transfer as arrived at warehouse hub."""
     conn = get_conn()
-    conn.execute(
-        "UPDATE transfers SET status = ?, updated_at = ? WHERE id = ?",
-        (status, datetime.utcnow().isoformat(), transfer_id)
-    )
+    if warehouse_date:
+        conn.execute(
+            "UPDATE transfers SET status = ?, warehouse_date = ?, updated_at = ? WHERE id = ?",
+            (status, warehouse_date, datetime.utcnow().isoformat(), transfer_id)
+        )
+    else:
+        conn.execute(
+            "UPDATE transfers SET status = ?, updated_at = ? WHERE id = ?",
+            (status, datetime.utcnow().isoformat(), transfer_id)
+        )
     conn.commit()
     conn.close()
