@@ -105,23 +105,22 @@
 </div>
 
 <!-- Table -->
-<div class="card" style="padding:0; overflow:hidden">
+<div class="card" style="padding:0; overflow-x:auto">
   {% if transfers %}
-  <table class="table" id="transfers-table" style="width:100%">
+  <table class="table" id="transfers-table" style="min-width:900px; width:100%">
     <thead>
       <tr>
         <th style="width:32px"><input type="checkbox" id="select-all" title="Select all pending" onchange="toggleAll(this)"/></th>
         <th class="sortable" onclick="sortTable(1)" style="white-space:nowrap">Collection No <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(2)">Type <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(3)" style="min-width:140px">Origin <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(4)" style="min-width:140px">Destination <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(2)" style="width:70px">Type <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(3)">Origin <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(4)">Destination <span class="sort-icon">↕</span></th>
         <th class="sortable" onclick="sortTable(5)" style="white-space:nowrap">Collect <span class="sort-icon">↕</span></th>
         <th class="sortable" onclick="sortTable(6)" style="white-space:nowrap">Delivery <span class="sort-icon">↕</span></th>
-        <th>Pcs</th>
-        <th>Ctn</th>
-        <th class="sortable" onclick="sortTable(9)" style="min-width:110px">Status <span class="sort-icon">↕</span></th>
-        <th class="sortable" onclick="sortTable(10)" style="white-space:nowrap">Submitted <span class="sort-icon">↕</span></th>
-        <th style="width:120px"></th>
+        <th style="width:40px">Pcs</th>
+        <th style="width:40px">Ctn</th>
+        <th class="sortable" onclick="sortTable(9)" style="width:120px">Status <span class="sort-icon">↕</span></th>
+        <th style="width:110px; text-align:right; padding-right:.75rem"></th>
       </tr>
     </thead>
     <tbody id="transfers-body">
@@ -141,13 +140,13 @@
         <td><strong>{{ t.collect_no }}</strong></td>
         <td>
           <span class="badge badge-type-{{ t.form_type or 'commercial' }}">
-            {% if t.form_type == 'decoration' %}🎨 Deco{% else %}📦 Stock{% endif %}
+            {% if t.form_type == 'decoration' %}🎨{% else %}📦{% endif %}
           </span>
         </td>
         <td class="text-sm store-cell" title="{{ t.from_store_name }}">{{ t.from_store_name }}</td>
         <td class="text-sm store-cell" title="{{ t.to_store_name }}">{{ t.to_store_name }}</td>
-        <td>{{ t.collection_date }}</td>
-        <td>{{ t.delivery_date }}</td>
+        <td style="white-space:nowrap" class="text-sm">{{ t.collection_date }}</td>
+        <td style="white-space:nowrap" class="text-sm">{{ t.delivery_date }}</td>
         <td>{{ t.total_pcs }}</td>
         <td>{{ t.total_ctn }}</td>
         <td>
@@ -160,8 +159,7 @@
             {% else %}❌ Rejected{% endif %}
           </span>
         </td>
-        <td class="text-sm text-muted">{{ t.submitted_at[:10] }}</td>
-        <td class="row-actions">
+        <td class="row-actions" style="text-align:right">
           <a href="/logistics/transfer/{{ t.id }}" class="btn btn-sm btn-secondary">View</a>
           <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇</a>
           <button class="btn btn-sm btn-danger-soft"
