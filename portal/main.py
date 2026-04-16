@@ -420,17 +420,23 @@ async def transporter_dashboard(request: Request):
     s = get_session(request)
     if not s or not s.get("is_transporter"):
         return RedirectResponse("/login")
-    transfers = database.get_transfers_for_transporter()
+    all_transfers = database.get_transfers_for_transporter()
+    # DHL-SACOOR is the warehouse store — transporter can complete those directly
+    dhl_store = database.get_store_by_username("dhl_sacoor")
+    dhl_store_id = dhl_store["id"] if dhl_store else None
+    in_transit   = [t for t in all_transfers if t["to_store_id"] != dhl_store_id]
+    wh_receipts  = [t for t in all_transfers if t["to_store_id"] == dhl_store_id]
     counts = {
-        "all":       len(transfers),
-        "approved":  sum(1 for t in transfers if t["status"] == "approved"),
-        "warehouse": sum(1 for t in transfers if t["status"] == "warehouse"),
-        "completed": sum(1 for t in transfers if t["status"] in ("completed", "incorrect")),
+        "awaiting":  sum(1 for t in in_transit  if t["status"] == "approved"),
+        "warehouse": sum(1 for t in in_transit  if t["status"] == "warehouse"),
+        "delivered": sum(1 for t in in_transit  if t["status"] in ("completed", "incorrect")),
+        "wh_pending":   sum(1 for t in wh_receipts if t["status"] in ("approved", "warehouse")),
+        "wh_completed": sum(1 for t in wh_receipts if t["status"] in ("completed", "incorrect")),
     }
     return templates.TemplateResponse("transporter_dashboard.html", {
         "request": request, "session": s,
-        "transfers": transfers, "counts": counts,
-        "today": date.today().isoformat(),
+        "in_transit": in_transit, "wh_receipts": wh_receipts,
+        "counts": counts, "today": date.today().isoformat(),
     })
 
 
@@ -443,6 +449,16 @@ async def mark_warehouse(request: Request, tid: int):
     warehouse_date = form.get("warehouse_date", date.today().isoformat())
     database.update_transporter_status(tid, "warehouse", warehouse_date)
     return RedirectResponse("/transporter?warehouse=1", status_code=302)
+
+
+@app.post("/transporter/transfer/{tid}/complete")
+async def transporter_complete(request: Request, tid: int):
+    """Transporter marks a DHL-SACOOR destined transfer as completed."""
+    s = get_session(request)
+    if not s or not s.get("is_transporter"):
+        return RedirectResponse("/login")
+    database.update_receipt_status(tid, "completed")
+    return RedirectResponse("/transporter?completed=1", status_code=302)
 
 
 @app.post("/transporter/transfer/{tid}/out-for-delivery")
