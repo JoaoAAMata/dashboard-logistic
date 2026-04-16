@@ -26,6 +26,14 @@
     <div class="stat-value">{{ counts.approved }}</div>
     <div class="stat-label">Approved</div>
   </a>
+  <a href="/logistics?status=completed" class="stat-card stat-completed {% if active_filter == 'completed' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.completed }}</div>
+    <div class="stat-label">Completed</div>
+  </a>
+  <a href="/logistics?status=incorrect" class="stat-card stat-incorrect {% if active_filter == 'incorrect' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.incorrect }}</div>
+    <div class="stat-label">Incorrect</div>
+  </a>
   <a href="/logistics?status=rejected" class="stat-card stat-rejected {% if active_filter == 'rejected' %}stat-active{% endif %}">
     <div class="stat-value">{{ counts.rejected }}</div>
     <div class="stat-label">Rejected</div>
@@ -138,11 +146,15 @@
         <td>{{ t.delivery_date }}</td>
         <td>{{ t.total_pcs }}</td>
         <td>{{ t.total_ctn }}</td>
-        <td><span class="badge badge-{{ t.status }}">
-          {% if t.status == 'pending' %}Pending
-          {% elif t.status == 'approved' %}Approved
-          {% else %}Rejected{% endif %}
-        </span></td>
+        <td>
+          <span class="badge badge-{{ t.status }}">
+            {% if t.status == 'pending' %}⏳ Pending
+            {% elif t.status == 'approved' %}✅ Approved
+            {% elif t.status == 'completed' %}📦 Completed
+            {% elif t.status == 'incorrect' %}⚠️ Incorrect
+            {% else %}❌ Rejected{% endif %}
+          </span>
+        </td>
         <td class="text-sm text-muted">{{ t.submitted_at[:10] }}</td>
         <td class="row-actions">
           <a href="/logistics/transfer/{{ t.id }}" class="btn btn-sm btn-secondary">View</a>
@@ -195,6 +207,14 @@ th.sorted-desc .sort-icon::after { content:'▼'; opacity:1; }
 .row-actions { display:flex; gap:.3rem; align-items:center; }
 .btn-danger-soft { background:#fff0f0; color:var(--red); border:1px solid #fcc; }
 .btn-danger-soft:hover { background:var(--red); color:#fff; }
+
+/* Receipt status badges */
+.badge-completed { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
+.badge-incorrect  { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+
+/* Stat cards for new statuses */
+.stat-completed { border-left:3px solid #28a745; }
+.stat-incorrect  { border-left:3px solid #ffc107; }
 
 /* Modal */
 .modal-backdrop {

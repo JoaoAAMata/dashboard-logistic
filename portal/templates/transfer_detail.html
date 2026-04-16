@@ -24,6 +24,8 @@
 <div class="alert alert-error">Transfer rejected.</div>
 {% elif request.query_params.get('edited') %}
 <div class="alert alert-success">Transfer updated successfully.</div>
+{% elif request.query_params.get('updated') %}
+<div class="alert alert-success">Receipt status updated.</div>
 {% endif %}
 
 <div class="status-banner status-{{ transfer.status }}">
@@ -43,6 +45,38 @@
         style="display:inline" onsubmit="return confirmReject(this)">
     <input type="hidden" name="reason" id="reject-reason"/>
     <button type="submit" class="btn btn-danger">❌ Reject</button>
+  </form>
+</div>
+{% endif %}
+
+{% if transfer.status in ('approved', 'completed', 'incorrect') %}
+<div class="card" style="margin-bottom:1rem">
+  <h2 class="card-title">Receipt Confirmation</h2>
+  {% if transfer.status == 'completed' %}
+  <div class="alert alert-success" style="margin-bottom:1rem">📦 Marked as <strong>Completed</strong> by destination store.</div>
+  {% elif transfer.status == 'incorrect' %}
+  <div class="alert alert-error" style="margin-bottom:1rem">⚠️ Marked as <strong>Incorrect</strong> by destination store.{% if transfer.receipt_note %} — {{ transfer.receipt_note }}{% endif %}</div>
+  {% else %}
+  <p class="text-muted" style="font-size:.85rem;margin-bottom:1rem">Waiting for destination store to confirm receipt.</p>
+  {% endif %}
+  <form method="post" action="/logistics/transfer/{{ transfer.id }}/receipt">
+    <div class="form-grid" style="align-items:end">
+      <div class="form-group">
+        <label>Update Receipt Status</label>
+        <select name="receipt_status" id="logistic-receipt-status" onchange="toggleLogisticNote()">
+          <option value="">-- Select --</option>
+          <option value="completed" {% if transfer.status == 'completed' %}selected{% endif %}>✅ Completed</option>
+          <option value="incorrect" {% if transfer.status == 'incorrect' %}selected{% endif %}>⚠️ Incorrect</option>
+        </select>
+      </div>
+      <div class="form-group" id="logistic-note-group" style="display:{% if transfer.status == 'incorrect' %}block{% else %}none{% endif %}">
+        <label>Observation</label>
+        <input type="text" name="receipt_note" value="{{ transfer.receipt_note or '' }}" placeholder="Describe the issue…"/>
+      </div>
+      <div class="form-group">
+        <button type="submit" class="btn btn-primary">Update</button>
+      </div>
+    </div>
   </form>
 </div>
 {% endif %}
@@ -234,6 +268,12 @@ function previewPhoto(input) {
     };
     reader.readAsDataURL(input.files[0]);
   }
+}
+
+function toggleLogisticNote() {
+  const sel = document.getElementById('logistic-receipt-status');
+  const grp = document.getElementById('logistic-note-group');
+  if (grp) grp.style.display = (sel.value === 'incorrect') ? '' : 'none';
 }
 
 function confirmReject(form) {

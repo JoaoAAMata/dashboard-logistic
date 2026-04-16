@@ -95,6 +95,7 @@
           <th>Pieces</th>
           <th>Cartons</th>
           <th></th>
+          <th>Receipt</th>
         </tr>
       </thead>
       <tbody>
@@ -114,6 +115,51 @@
           <td>
             <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
           </td>
+          <td style="min-width:220px">
+            {% if t.status == 'approved' %}
+            <form method="post" action="/store/transfer/{{ t.id }}/receipt" class="receipt-form" id="rf-{{ t.id }}">
+              <input type="hidden" name="receipt_status" id="rs-{{ t.id }}" value=""/>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                <button type="button" class="btn btn-sm btn-success"
+                        onclick="submitReceipt({{ t.id }}, 'completed')">✅ Completed</button>
+                <button type="button" class="btn btn-sm btn-warning"
+                        onclick="toggleIncorrect({{ t.id }})">⚠️ Incorrect</button>
+              </div>
+              <div id="incorrect-panel-{{ t.id }}" style="display:none;margin-top:.5rem">
+                <textarea name="receipt_note" rows="2"
+                          placeholder="Describe the issue…"
+                          style="width:100%;font-size:.8rem;border:1px solid #ccc;border-radius:4px;padding:.4rem"></textarea>
+                <button type="button" class="btn btn-sm btn-danger"
+                        style="margin-top:.3rem"
+                        onclick="submitReceipt({{ t.id }}, 'incorrect')">Submit</button>
+              </div>
+            </form>
+            {% elif t.status == 'completed' %}
+            <span class="badge badge-completed">📦 Completed</span>
+            <a href="#" class="text-sm text-muted" style="display:block;margin-top:.3rem"
+               onclick="showChangeReceipt({{ t.id }});return false">Change</a>
+            <div id="change-receipt-{{ t.id }}" style="display:none;margin-top:.5rem">
+              <form method="post" action="/store/transfer/{{ t.id }}/receipt">
+                <input type="hidden" name="receipt_status" value="incorrect"/>
+                <textarea name="receipt_note" rows="2" placeholder="Describe the issue…" required
+                          style="width:100%;font-size:.8rem;border:1px solid #ccc;border-radius:4px;padding:.4rem"></textarea>
+                <button type="submit" class="btn btn-sm btn-warning" style="margin-top:.3rem">⚠️ Mark as Incorrect</button>
+              </form>
+            </div>
+            {% elif t.status == 'incorrect' %}
+            <span class="badge badge-incorrect">⚠️ Incorrect</span>
+            {% if t.receipt_note %}<div class="text-sm" style="margin-top:.25rem;color:#856404">{{ t.receipt_note }}</div>{% endif %}
+            <a href="#" class="text-sm text-muted" style="display:block;margin-top:.3rem"
+               onclick="showChangeReceipt({{ t.id }});return false">Change</a>
+            <div id="change-receipt-{{ t.id }}" style="display:none;margin-top:.5rem">
+              <form method="post" action="/store/transfer/{{ t.id }}/receipt">
+                <input type="hidden" name="receipt_status" value="completed"/>
+                <input type="hidden" name="receipt_note" value=""/>
+                <button type="submit" class="btn btn-sm btn-success">✅ Mark as Completed</button>
+              </form>
+            </div>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
@@ -125,4 +171,28 @@
   </div>
   {% endif %}
 </div>
+<style>
+.badge-completed { background:#d4edda; color:#155724; border:1px solid #c3e6cb; padding:.2rem .5rem; border-radius:4px; font-size:.78rem; font-weight:600; display:inline-block; }
+.badge-incorrect  { background:#fff3cd; color:#856404; border:1px solid #ffeeba; padding:.2rem .5rem; border-radius:4px; font-size:.78rem; font-weight:600; display:inline-block; }
+.btn-warning { background:#ffc107; color:#212529; border:none; }
+.btn-warning:hover { background:#e0a800; }
+</style>
+<script>
+function submitReceipt(tid, status) {
+  if (status === 'incorrect') {
+    const note = document.querySelector('#incorrect-panel-' + tid + ' textarea').value.trim();
+    if (!note) { alert('Please describe the issue before submitting.'); return; }
+  }
+  document.getElementById('rs-' + tid).value = status;
+  document.getElementById('rf-' + tid).submit();
+}
+function toggleIncorrect(tid) {
+  const panel = document.getElementById('incorrect-panel-' + tid);
+  panel.style.display = panel.style.display === 'none' ? '' : 'none';
+}
+function showChangeReceipt(tid) {
+  const div = document.getElementById('change-receipt-' + tid);
+  if (div) div.style.display = div.style.display === 'none' ? '' : 'none';
+}
+</script>
 {% endblock %}

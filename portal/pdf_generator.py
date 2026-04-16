@@ -168,12 +168,13 @@ def generate_pdf(transfer: dict) -> bytes:
         _p("Total<br/>Pcs",                  **label_s),
         _p("Total<br/>Ctn",                  **label_s),
     ]
+    rln = str(transfer.get("total_rln") or 0)
     values = [
         _p(_fmt_date(transfer["collection_date"]), **value_s),
         _p(transfer["from_store_name"],            **value_s),
         _p(_fmt_date(transfer["delivery_date"]),   **value_s),
         _p(transfer["to_store_name"],              **value_s),
-        _p("",                                     **value_bk),
+        _p(rln if rln != "0" else "",              **value_bk),
         _p(str(transfer["total_pcs"]),             **value_s),
         _p(str(transfer["total_ctn"]),             **value_s),
     ]

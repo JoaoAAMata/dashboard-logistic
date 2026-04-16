@@ -186,6 +186,12 @@ def init_db():
     except Exception:
         pass
 
+    # Add receipt_note column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE transfers ADD COLUMN receipt_note TEXT")
+    except Exception:
+        pass
+
     # Sync stores: update existing by username, insert new ones, deactivate removed ones
     new_usernames = [s[2] for s in STORES]
     # Deactivate any store whose username is no longer in the master list
@@ -428,8 +434,19 @@ def get_incoming_transfers(store_id: int):
         SELECT t.*, s.store_name as from_store_name
         FROM transfers t
         JOIN stores s ON s.id = t.from_store_id
-        WHERE t.to_store_id = ? AND t.status = 'approved'
+        WHERE t.to_store_id = ? AND t.status IN ('approved', 'completed', 'incorrect')
         ORDER BY t.delivery_date ASC
     """, (store_id,)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+def update_receipt_status(transfer_id: int, status: str, note: str = ""):
+    """Mark a transfer as completed or incorrect (receipt confirmation by store or logistics)."""
+    conn = get_conn()
+    conn.execute(
+        "UPDATE transfers SET status = ?, receipt_note = ?, updated_at = ? WHERE id = ?",
+        (status, note or "", datetime.utcnow().isoformat(), transfer_id)
+    )
+    conn.commit()
+    conn.close()

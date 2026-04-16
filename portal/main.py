@@ -240,10 +240,12 @@ async def logistics_dashboard(request: Request, status: str = ""):
     all_transfers = database.get_all_transfers()
     transfers = [t for t in all_transfers if t["status"] == status] if status else all_transfers
     counts = {
-        "all":      len(all_transfers),
-        "pending":  sum(1 for t in all_transfers if t["status"] == "pending"),
-        "approved": sum(1 for t in all_transfers if t["status"] == "approved"),
-        "rejected": sum(1 for t in all_transfers if t["status"] == "rejected"),
+        "all":       len(all_transfers),
+        "pending":   sum(1 for t in all_transfers if t["status"] == "pending"),
+        "approved":  sum(1 for t in all_transfers if t["status"] == "approved"),
+        "rejected":  sum(1 for t in all_transfers if t["status"] == "rejected"),
+        "completed": sum(1 for t in all_transfers if t["status"] == "completed"),
+        "incorrect": sum(1 for t in all_transfers if t["status"] == "incorrect"),
     }
     stores = database.get_all_stores(exclude_admin=False)
     return templates.TemplateResponse("logistics.html", {
@@ -349,6 +351,34 @@ async def reject(request: Request, tid: int, reason: str = Form("")):
         return RedirectResponse("/login")
     database.update_transfer_status(tid, "rejected", reason)
     return RedirectResponse(f"/logistics/transfer/{tid}?rejected=1", status_code=302)
+
+
+@app.post("/store/transfer/{tid}/receipt")
+async def store_receipt(request: Request, tid: int):
+    """Destination store confirms receipt as completed or incorrect."""
+    s = get_session(request)
+    if not s or s["is_admin"]:
+        return RedirectResponse("/login")
+    form = await request.form()
+    receipt_status = form.get("receipt_status", "")
+    receipt_note   = form.get("receipt_note", "").strip()
+    if receipt_status in ("completed", "incorrect"):
+        database.update_receipt_status(tid, receipt_status, receipt_note)
+    return RedirectResponse("/store", status_code=302)
+
+
+@app.post("/logistics/transfer/{tid}/receipt")
+async def logistics_receipt(request: Request, tid: int):
+    """Logistics team can also update receipt status."""
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    form = await request.form()
+    receipt_status = form.get("receipt_status", "")
+    receipt_note   = form.get("receipt_note", "").strip()
+    if receipt_status in ("completed", "incorrect"):
+        database.update_receipt_status(tid, receipt_status, receipt_note)
+    return RedirectResponse(f"/logistics/transfer/{tid}?updated=1", status_code=302)
 
 
 @app.post("/logistics/bulk-approve")
