@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Login — Sacoor Logistics{% endblock %}
+
+{% block content %}
+<div class="login-wrap">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="login-logo">
+        <span class="brand-sacoor">SACOOR</span><span class="brand-brothers">brothers</span>
+      </div>
+      <p class="login-sub">Logistics Portal</p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username"
+               placeholder="e.g. mgar" required autofocus/>
+      </div>
+      <div class="form-group">
+        <label for="pin">PIN</label>
+        <input id="pin" name="pin" type="password" autocomplete="current-password"
+               placeholder="••••" required/>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Login</button>
+    </form>
+
+    <p class="login-hint">Default PIN: <strong>1234</strong> — change it after your first login.</p>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+{% block title %}New Transfer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>New Transfer</h1>
+    <p class="text-muted">From: <strong>{{ session.store_name }}</strong></p>
+  </div>
+  <a href="/store" class="btn btn-secondary">← Back</a>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<!-- Form type tabs -->
+<div class="type-tabs">
+  <button type="button" class="type-tab active" id="tab-commercial" onclick="switchType('commercial')">
+    📦 Stock / Rotation
+  </button>
+  <button type="button" class="type-tab" id="tab-decoration" onclick="switchType('decoration')">
+    🎨 Decoration
+  </button>
+</div>
+
+<form method="post" action="/store/new" id="transfer-form" enctype="multipart/form-data">
+  <input type="hidden" name="form_type" id="form_type" value="{{ form_type or 'commercial' }}"/>
+
+  <div class="card">
+    <h2 class="card-title" id="form-title">Stock Rotation — Collection Info</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Destination Store *</label>
+        <select name="to_store_id" required>
+          <option value="">-- Select store --</option>
+          {% for store in stores %}
+          <option value="{{ store.id }}">{{ store.store_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Total Cartons (Ctn) *</label>
+        <input type="number" name="total_ctn" min="1" required placeholder="e.g. 2"/>
+      </div>
+      <div class="form-group">
+        <label>Collection Date *</label>
+        <input type="date" name="collection_date" required value="{{ today }}"/>
+      </div>
+      <div class="form-group">
+        <label>Expected Delivery Date *</label>
+        <input type="date" name="delivery_date" required/>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK lines -->
+  <div class="card" id="section-commercial">
+    <div class="card-title-row">
+      <h2 class="card-title">Transfer Lines (TG)</h2>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addCommercialLine()">+ Add line</button>
+    </div>
+    <table class="table">
+      <thead>
+        <tr><th>TG Number</th><th>Description</th><th>UOM</th><th>Quantity</th><th></th></tr>
+      </thead>
+      <tbody id="commercial-body">
+        <tr class="line-row">
+          <td><input type="text" name="tg_numbers" placeholder="e.g. 342/2026/9608"/></td>
+          <td><input type="text" name="descriptions" value="Stock Rotation by Email" readonly class="input-readonly"/></td>
+          <td><input type="text" name="uoms" value="Pcs" readonly class="input-readonly input-sm"/></td>
+          <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm" oninput="updateTotal('commercial')"/></td>
+          <td><button type="button" class="btn-remove" onclick="removeLine(this,'commercial')">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="total-row">Total Pieces: <strong id="total-commercial">0</strong></div>
+  </div>
+
+  <!-- DECORATION lines -->
+  <div class="card" id="section-decoration" style="display:none">
+    <div class="card-title-row">
+      <h2 class="card-title">Decoration Items</h2>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addDecorationLine()">+ Add line</button>
+    </div>
+
+    <div class="upload-hint">
+      📷 You can upload a photo for each item. Accepted formats: JPG, PNG.
+    </div>
+
+    <table class="table" id="deco-table">
+      <thead>
+        <tr><th>Description *</th><th>UOM</th><th>Quantity</th><th>Photo</th><th></th></tr>
+      </thead>
+      <tbody id="decoration-body">
+        <tr class="line-row">
+          <td><input type="text" name="descriptions" placeholder="Item description" class="deco-field"/></td>
+          <td>
+            <select name="uoms" class="input-sm deco-field">
+              <option>Pcs</option><option>Units</option><option>Set</option><option>Box</option>
+            </select>
+          </td>
+          <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm deco-field" oninput="updateTotal('decoration')"/></td>
+          <td>
+            <label class="file-upload-label">
+              <input type="file" name="photos" accept="image/*" class="deco-field file-input" onchange="previewPhoto(this)"/>
+              <span class="file-upload-btn">📷 Choose photo</span>
+              <span class="file-name-display text-muted text-sm">No file</span>
+            </label>
+            <div class="photo-preview-wrap"></div>
+          </td>
+          <td><button type="button" class="btn-remove" onclick="removeLine(this,'decoration')">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="total-row">Total Pieces: <strong id="total-decoration">0</strong></div>
+  </div>
+
+  <div class="form-actions">
+    <a href="/store" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary">Submit Transfer</button>
+  </div>
+</form>
+
+<style>
+.type-tabs { display:flex; gap:.5rem; margin-bottom:1rem; }
+.type-tab { padding:.6rem 1.4rem; border-radius:6px; border:1px solid var(--grey-bd); background:#fff; font-size:.875rem; font-weight:600; cursor:pointer; transition:all .15s; }
+.type-tab.active { background:var(--dark); color:#fff; border-color:var(--dark); }
+.type-tab:hover:not(.active) { border-color:var(--dark); }
+
+.upload-hint { background:#f0f7ff; border:1px solid #b3d4f5; border-radius:6px; padding:.6rem 1rem; font-size:.82rem; color:#1a5c9e; margin-bottom:1rem; }
+
+.file-upload-label { display:flex; align-items:center; gap:.5rem; flex-wrap:wrap; cursor:pointer; }
+.file-input { display:none; }
+.file-upload-btn { padding:.3rem .7rem; border:1px solid var(--grey-bd); border-radius:4px; font-size:.78rem; background:#fff; cursor:pointer; white-space:nowrap; }
+.file-upload-btn:hover { border-color:var(--dark); }
+.file-name-display { max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+.photo-preview-wrap { margin-top:.4rem; }
+.photo-preview-wrap img { max-width:80px; max-height:60px; border-radius:4px; border:1px solid var(--grey-bd); object-fit:cover; }
+</style>
+
+<script>
+let currentType = '{{ form_type or "commercial" }}';
+
+function switchType(type) {
+  currentType = type;
+  document.getElementById('form_type').value = type;
+  document.getElementById('tab-commercial').classList.toggle('active', type === 'commercial');
+  document.getElementById('tab-decoration').classList.toggle('active', type === 'decoration');
+  document.getElementById('section-commercial').style.display = type === 'commercial' ? '' : 'none';
+  document.getElementById('section-decoration').style.display = type === 'decoration'  ? '' : 'none';
+
+  // Disable ALL inputs in the inactive section so they are NOT submitted with the form
+  document.querySelectorAll('#section-commercial input, #section-commercial select').forEach(el => {
+    el.disabled = (type !== 'commercial');
+  });
+  document.querySelectorAll('#section-decoration input, #section-decoration select').forEach(el => {
+    el.disabled = (type !== 'decoration');
+  });
+
+  const titles = {
+    commercial: 'Stock Rotation — Collection Info',
+    decoration:  'Decoration — Collection Info'
+  };
+  document.getElementById('form-title').textContent = titles[type];
+}
+
+function decoRowHTML() {
+  return `
+    <td><input type="text" name="descriptions" placeholder="Item description" class="deco-field"/></td>
+    <td><select name="uoms" class="input-sm deco-field"><option>Pcs</option><option>Units</option><option>Set</option><option>Box</option></select></td>
+    <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm deco-field" oninput="updateTotal('decoration')"/></td>
+    <td>
+      <label class="file-upload-label">
+        <input type="file" name="photos" accept="image/*" class="deco-field file-input" onchange="previewPhoto(this)"/>
+        <span class="file-upload-btn">📷 Choose photo</span>
+        <span class="file-name-display text-muted text-sm">No file</span>
+      </label>
+      <div class="photo-preview-wrap"></div>
+    </td>
+    <td><button type="button" class="btn-remove" onclick="removeLine(this,'decoration')">✕</button></td>`;
+}
+
+function addCommercialLine() {
+  const tbody = document.getElementById('commercial-body');
+  const row = document.createElement('tr');
+  row.className = 'line-row';
+  row.innerHTML = `
+    <td><input type="text" name="tg_numbers" placeholder="e.g. 342/2026/9608"/></td>
+    <td><input type="text" name="descriptions" value="Stock Rotation by Email" readonly class="input-readonly"/></td>
+    <td><input type="text" name="uoms" value="Pcs" readonly class="input-readonly input-sm"/></td>
+    <td><input type="number" name="quantities" min="1" placeholder="0" class="input-sm" oninput="updateTotal('commercial')"/></td>
+    <td><button type="button" class="btn-remove" onclick="removeLine(this,'commercial')">✕</button></td>`;
+  tbody.appendChild(row);
+  row.querySelector('input[name="tg_numbers"]').focus();
+}
+
+function addDecorationLine() {
+  const tbody = document.getElementById('decoration-body');
+  const row = document.createElement('tr');
+  row.className = 'line-row';
+  row.innerHTML = decoRowHTML();
+  tbody.appendChild(row);
+  // New rows are added while decoration is active — ensure fields are enabled
+  row.querySelectorAll('input, select').forEach(el => el.disabled = false);
+  row.querySelector('input[name="descriptions"]').focus();
+}
+
+function removeLine(btn, type) {
+  const tbody = document.getElementById(type === 'commercial' ? 'commercial-body' : 'decoration-body');
+  if (tbody.querySelectorAll('tr').length === 1) return;
+  btn.closest('tr').remove();
+  updateTotal(type);
+}
+
+function updateTotal(type) {
+  const id = type === 'commercial' ? 'commercial-body' : 'decoration-body';
+  const qtys = document.querySelectorAll('#' + id + ' input[name="quantities"]');
+  let total = 0;
+  qtys.forEach(q => total += parseInt(q.value) || 0);
+  document.getElementById('total-' + type).textContent = total;
+}
+
+function previewPhoto(input) {
+  const label = input.closest('label');
+  const nameEl = label.querySelector('.file-name-display');
+  const previewWrap = label.closest('td').querySelector('.photo-preview-wrap');
+
+  if (input.files && input.files[0]) {
+    nameEl.textContent = input.files[0].name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      previewWrap.innerHTML = `<img src="${e.target.result}" alt="preview"/>`;
+    };
+    reader.readAsDataURL(input.files[0]);
+  } else {
+    nameEl.textContent = 'No file';
+    previewWrap.innerHTML = '';
+  }
+}
+
+switchType(currentType);
+</script>
+{% endblock %}

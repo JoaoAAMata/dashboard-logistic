@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block title %}{{ transfer.collect_no }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ transfer.collect_no }}</h1>
+    <p class="text-muted">
+      <span class="badge badge-type-{{ transfer.form_type or 'commercial' }}">
+        {% if transfer.form_type == 'decoration' %}🎨 Decoration{% else %}📦 Stock{% endif %}
+      </span>
+      &nbsp; Submitted on {{ transfer.submitted_at[:10] }}
+    </p>
+  </div>
+  <div class="header-actions">
+    <a href="/transfer/{{ transfer.id }}/pdf" class="btn btn-secondary">⬇ Download PDF</a>
+    <a href="/logistics" class="btn btn-secondary">← Back</a>
+  </div>
+</div>
+
+{% if request.query_params.get('approved') %}
+<div class="alert alert-success">Transfer approved. PDF is available for download.</div>
+{% elif request.query_params.get('rejected') %}
+<div class="alert alert-error">Transfer rejected.</div>
+{% elif request.query_params.get('edited') %}
+<div class="alert alert-success">Transfer updated successfully.</div>
+{% endif %}
+
+<div class="status-banner status-{{ transfer.status }}">
+  <strong>Status:</strong>
+  {% if transfer.status == 'pending' %}⏳ Pending — awaiting review
+  {% elif transfer.status == 'approved' %}✅ Approved
+  {% else %}❌ Rejected{% if transfer.rejection_reason %} — {{ transfer.rejection_reason }}{% endif %}
+  {% endif %}
+</div>
+
+{% if transfer.status == 'pending' %}
+<div class="action-bar">
+  <form method="post" action="/logistics/transfer/{{ transfer.id }}/approve" style="display:inline">
+    <button type="submit" class="btn btn-success">✅ Approve</button>
+  </form>
+  <form method="post" action="/logistics/transfer/{{ transfer.id }}/reject"
+        style="display:inline" onsubmit="return confirmReject(this)">
+    <input type="hidden" name="reason" id="reject-reason"/>
+    <button type="submit" class="btn btn-danger">❌ Reject</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Info summary -->
+<div class="card">
+  <h2 class="card-title">Transfer Information</h2>
+  <div class="info-grid">
+    <div class="info-item"><span class="info-label">Origin</span><span class="info-value">{{ transfer.from_store_name }}</span></div>
+    <div class="info-item"><span class="info-label">Destination</span><span class="info-value">{{ transfer.to_store_name }}</span></div>
+    <div class="info-item"><span class="info-label">Collection Date</span><span class="info-value">{{ transfer.collection_date }}</span></div>
+    <div class="info-item"><span class="info-label">Delivery Date</span><span class="info-value">{{ transfer.delivery_date }}</span></div>
+    <div class="info-item"><span class="info-label">Total Pieces</span><span class="info-value">{{ transfer.total_pcs }}</span></div>
+    <div class="info-item"><span class="info-label">Total Cartons</span><span class="info-value">{{ transfer.total_ctn }}</span></div>
+  </div>
+
+  <table class="table" style="margin-top:1rem">
+    <thead>
+      {% if transfer.form_type == 'decoration' %}
+      <tr><th>Description</th><th>UOM</th><th>Qty</th><th>Photo</th></tr>
+      {% else %}
+      <tr><th>TG</th><th>Description</th><th>UOM</th><th>Qty</th></tr>
+      {% endif %}
+    </thead>
+    <tbody>
+      {% for line in transfer.lines %}
+      <tr>
+        {% if transfer.form_type == 'decoration' %}
+        <td>{{ line.description }}</td>
+        <td>{{ line.uom }}</td>
+        <td>{{ line.qty }}</td>
+        <td>
+          {% if line.picture_ref %}
+          <img src="/static/uploads/{{ line.picture_ref }}" style="max-height:60px;max-width:80px;border-radius:4px;border:1px solid #eee;"/>
+          {% else %}<span class="text-muted">—</span>{% endif %}
+        </td>
+        {% else %}
+        <td>{{ line.tg_number }}</td>
+        <td>{{ line.description }}</td>
+        <td>{{ line.uom }}</td>
+        <td>{{ line.qty }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Edit form -->
+<div class="card">
+  <h2 class="card-title">Edit Transfer</h2>
+  <form method="post" action="/logistics/transfer/{{ transfer.id }}/edit" enctype="multipart/form-data">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Destination Store</label>
+        <select name="to_store_id" required>
+          {% for store in stores %}
+          <option value="{{ store.id }}" {% if store.id == transfer.to_store_id %}selected{% endif %}>
+            {{ store.store_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Total Cartons</label>
+        <input type="number" name="total_ctn" min="1" value="{{ transfer.total_ctn }}" required/>
+      </div>
+      <div class="form-group">
+        <label>Collection Date</label>
+        <input type="date" name="collection_date" value="{{ transfer.collection_date }}" required/>
+      </div>
+      <div class="form-group">
+        <label>Delivery Date</label>
+        <input type="date" name="delivery_date" value="{{ transfer.delivery_date }}" required/>
+      </div>
+    </div>
+
+    <div class="card-title-row" style="margin-top:1rem">
+      <h3 style="margin:0">{% if transfer.form_type == 'decoration' %}Decoration Items{% else %}TG Lines{% endif %}</h3>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="addLine()">+ Add line</button>
+    </div>
+    <table class="table" style="margin-top:.5rem">
+      <thead>
+        {% if transfer.form_type == 'decoration' %}
+        <tr><th>Description</th><th>UOM</th><th>Qty</th><th>Photo</th><th></th></tr>
+        {% else %}
+        <tr><th>TG</th><th>Description</th><th>UOM</th><th>Qty</th><th></th></tr>
+        {% endif %}
+      </thead>
+      <tbody id="lines-body">
+        {% for line in transfer.lines %}
+        <tr class="line-row">
+          {% if transfer.form_type == 'decoration' %}
+          <td><input type="text" name="descriptions" value="{{ line.description }}" required/></td>
+          <td><select name="uoms" class="input-sm">
+            <option {% if line.uom=='Pcs' %}selected{% endif %}>Pcs</option>
+            <option {% if line.uom=='Units' %}selected{% endif %}>Units</option>
+            <option {% if line.uom=='Set' %}selected{% endif %}>Set</option>
+            <option {% if line.uom=='Box' %}selected{% endif %}>Box</option>
+          </select></td>
+          <td><input type="number" name="quantities" value="{{ line.qty }}" min="1" required class="input-sm" oninput="updateTotal()"/></td>
+          <td>
+            {% if line.picture_ref %}
+            <img src="/static/uploads/{{ line.picture_ref }}" style="max-height:50px;max-width:60px;border-radius:4px;border:1px solid #eee;"/>
+            {% endif %}
+            <label class="file-upload-label" style="margin-top:.3rem">
+              <input type="file" name="photos" accept="image/*" class="file-input" onchange="previewPhoto(this)"/>
+              <span class="file-upload-btn" style="font-size:.72rem">📷 Replace</span>
+            </label>
+            <input type="hidden" name="picture_refs" value="{{ line.picture_ref or '' }}"/>
+          </td>
+          {% else %}
+          <td><input type="text" name="tg_numbers" value="{{ line.tg_number }}" required/></td>
+          <td><input type="text" name="descriptions" value="{{ line.description }}" readonly class="input-readonly"/></td>
+          <td><input type="text" name="uoms" value="{{ line.uom }}" readonly class="input-readonly input-sm"/></td>
+          <td><input type="number" name="quantities" value="{{ line.qty }}" min="1" required class="input-sm" oninput="updateTotal()"/></td>
+          {% endif %}
+          <td><button type="button" class="btn-remove" onclick="removeLine(this)">✕</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="total-row">Total Pieces: <strong id="total-pcs">{{ transfer.total_pcs }}</strong></div>
+
+    <div class="form-actions" style="margin-top:1rem">
+      <button type="submit" class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const formType = '{{ transfer.form_type or "commercial" }}';
+
+function addLine() {
+  const tbody = document.getElementById('lines-body');
+  const row = document.createElement('tr');
+  row.className = 'line-row';
+  if (formType === 'decoration') {
+    row.innerHTML = `
+      <td><input type="text" name="descriptions" placeholder="Item description" required/></td>
+      <td><select name="uoms" class="input-sm"><option>Pcs</option><option>Units</option><option>Set</option><option>Box</option></select></td>
+      <td><input type="number" name="quantities" min="1" placeholder="0" required class="input-sm" oninput="updateTotal()"/></td>
+      <td>
+        <label class="file-upload-label">
+          <input type="file" name="photos" accept="image/*" class="file-input" onchange="previewPhoto(this)"/>
+          <span class="file-upload-btn" style="font-size:.72rem">📷 Choose</span>
+        </label>
+        <input type="hidden" name="picture_refs" value=""/>
+      </td>
+      <td><button type="button" class="btn-remove" onclick="removeLine(this)">✕</button></td>`;
+  } else {
+    row.innerHTML = `
+      <td><input type="text" name="tg_numbers" placeholder="e.g. 342/2026/9608" required/></td>
+      <td><input type="text" name="descriptions" value="Stock Rotation by Email" readonly class="input-readonly"/></td>
+      <td><input type="text" name="uoms" value="Pcs" readonly class="input-readonly input-sm"/></td>
+      <td><input type="number" name="quantities" min="1" placeholder="0" required class="input-sm" oninput="updateTotal()"/></td>
+      <td><button type="button" class="btn-remove" onclick="removeLine(this)">✕</button></td>`;
+  }
+  tbody.appendChild(row);
+}
+
+function removeLine(btn) {
+  const rows = document.querySelectorAll('.line-row');
+  if (rows.length === 1) return;
+  btn.closest('tr').remove();
+  updateTotal();
+}
+
+function updateTotal() {
+  const qtys = document.querySelectorAll('input[name="quantities"]');
+  let total = 0;
+  qtys.forEach(q => total += parseInt(q.value) || 0);
+  document.getElementById('total-pcs').textContent = total;
+}
+
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    const wrap = input.closest('td');
+    reader.onload = e => {
+      let img = wrap.querySelector('.new-preview');
+      if (!img) { img = document.createElement('img'); img.className = 'new-preview'; img.style = 'max-height:50px;max-width:60px;border-radius:4px;border:1px solid #eee;margin-top:.3rem;display:block'; wrap.appendChild(img); }
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function confirmReject(form) {
+  const reason = prompt('Rejection reason (optional):');
+  if (reason === null) return false;
+  document.getElementById('reject-reason').value = reason || '';
+  return true;
+}
+</script>
+{% endblock %}

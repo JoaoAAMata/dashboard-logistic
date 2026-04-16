@@ -1,0 +1,5 @@
+logistics.db
+__pycache__/
+*.pyc
+static/uploads/*
+!static/uploads/.gitkeep

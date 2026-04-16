@@ -1,0 +1,297 @@
+{% extends "base.html" %}
+{% block title %}Logistics Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Logistics Dashboard</h1>
+    <p class="text-muted">Store transfer management</p>
+  </div>
+  <div class="header-actions">
+    <button onclick="exportCSV()" class="btn btn-secondary">⬇ Export CSV</button>
+  </div>
+</div>
+
+<!-- Status tabs -->
+<div class="stats-grid">
+  <a href="/logistics" class="stat-card {% if active_filter == 'all' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.all }}</div>
+    <div class="stat-label">Total</div>
+  </a>
+  <a href="/logistics?status=pending" class="stat-card stat-pending {% if active_filter == 'pending' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.pending }}</div>
+    <div class="stat-label">Pending</div>
+  </a>
+  <a href="/logistics?status=approved" class="stat-card stat-approved {% if active_filter == 'approved' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.approved }}</div>
+    <div class="stat-label">Approved</div>
+  </a>
+  <a href="/logistics?status=rejected" class="stat-card stat-rejected {% if active_filter == 'rejected' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.rejected }}</div>
+    <div class="stat-label">Rejected</div>
+  </a>
+</div>
+
+<!-- Search & Filters -->
+<div class="card filter-bar">
+  <div class="filter-row">
+    <div class="filter-group filter-search">
+      <label>🔍 Search</label>
+      <input type="text" id="search-input" placeholder="Collection No, origin, destination…" oninput="applyFilters()"/>
+    </div>
+    <div class="filter-group">
+      <label>Origin</label>
+      <select id="filter-origin" onchange="applyFilters()">
+        <option value="">All stores</option>
+        {% for store in stores %}
+        <option value="{{ store.store_name | lower }}">{{ store.store_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Destination</label>
+      <select id="filter-dest" onchange="applyFilters()">
+        <option value="">All stores</option>
+        {% for store in stores %}
+        <option value="{{ store.store_name | lower }}">{{ store.store_name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Type</label>
+      <select id="filter-type" onchange="applyFilters()">
+        <option value="">All types</option>
+        <option value="stock">📦 Stock</option>
+        <option value="decoration">🎨 Decoration</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>From date</label>
+      <input type="date" id="filter-date-from" onchange="applyFilters()"/>
+    </div>
+    <div class="filter-group">
+      <label>To date</label>
+      <input type="date" id="filter-date-to" onchange="applyFilters()"/>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="clearFilters()">✕ Clear</button>
+  </div>
+  <div class="filter-summary" id="filter-summary" style="display:none">
+    Showing <strong id="visible-count">0</strong> of <strong>{{ transfers|length }}</strong> transfers
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card" style="padding:0;overflow:hidden">
+  {% if transfers %}
+  <table class="table" id="transfers-table">
+    <thead>
+      <tr>
+        <th class="sortable" onclick="sortTable(0)">Collection No <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(1)">Type <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(2)">Origin <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(3)">Destination <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(4)">Collection Date <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(5)">Delivery Date <span class="sort-icon">↕</span></th>
+        <th>Pcs</th>
+        <th>Ctn</th>
+        <th class="sortable" onclick="sortTable(8)">Status <span class="sort-icon">↕</span></th>
+        <th class="sortable" onclick="sortTable(9)">Submitted <span class="sort-icon">↕</span></th>
+        <th style="width:130px"></th>
+      </tr>
+    </thead>
+    <tbody id="transfers-body">
+      {% for t in transfers %}
+      <tr data-origin="{{ t.from_store_name | lower }}"
+          data-dest="{{ t.to_store_name | lower }}"
+          data-type="{{ t.form_type or 'commercial' }}"
+          data-date="{{ t.collection_date }}"
+          data-collectno="{{ t.collect_no | lower }}">
+        <td><strong>{{ t.collect_no }}</strong></td>
+        <td>
+          <span class="badge badge-type-{{ t.form_type or 'commercial' }}">
+            {% if t.form_type == 'decoration' %}🎨 Deco{% else %}📦 Stock{% endif %}
+          </span>
+        </td>
+        <td class="text-sm">{{ t.from_store_name }}</td>
+        <td class="text-sm">{{ t.to_store_name }}</td>
+        <td>{{ t.collection_date }}</td>
+        <td>{{ t.delivery_date }}</td>
+        <td>{{ t.total_pcs }}</td>
+        <td>{{ t.total_ctn }}</td>
+        <td><span class="badge badge-{{ t.status }}">
+          {% if t.status == 'pending' %}Pending
+          {% elif t.status == 'approved' %}Approved
+          {% else %}Rejected{% endif %}
+        </span></td>
+        <td class="text-sm text-muted">{{ t.submitted_at[:10] }}</td>
+        <td class="row-actions">
+          <a href="/logistics/transfer/{{ t.id }}" class="btn btn-sm btn-secondary">View</a>
+          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇</a>
+          <button class="btn btn-sm btn-danger-soft"
+                  onclick="confirmDelete({{ t.id }}, '{{ t.collect_no }}')"
+                  title="Delete">🗑</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty-state"><p>No transfers found.</p></div>
+  {% endif %}
+</div>
+
+<!-- Delete confirmation modal -->
+<div id="delete-modal" class="modal-backdrop" style="display:none">
+  <div class="modal-box">
+    <h3>Delete Transfer</h3>
+    <p>Are you sure you want to delete <strong id="delete-ref"></strong>?<br/>
+    <span class="text-error" style="font-size:.82rem">This action cannot be undone.</span></p>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <form id="delete-form" method="post" style="display:inline">
+        <button type="submit" class="btn btn-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Filter bar */
+.filter-bar { padding:1rem 1.25rem; margin-bottom:1rem; }
+.filter-row { display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; }
+.filter-group { display:flex; flex-direction:column; gap:.25rem; flex:1; min-width:140px; }
+.filter-group label { font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+.filter-search { flex:2; min-width:200px; }
+.filter-summary { margin-top:.75rem; font-size:.82rem; color:var(--muted); }
+
+/* Sortable columns */
+.sortable { cursor:pointer; user-select:none; }
+.sortable:hover { background:#2a2a2a; }
+.sort-icon { opacity:.4; font-size:.7rem; }
+th.sorted-asc .sort-icon::after  { content:'▲'; opacity:1; }
+th.sorted-desc .sort-icon::after { content:'▼'; opacity:1; }
+
+/* Row actions */
+.row-actions { display:flex; gap:.3rem; align-items:center; }
+.btn-danger-soft { background:#fff0f0; color:var(--red); border:1px solid #fcc; }
+.btn-danger-soft:hover { background:var(--red); color:#fff; }
+
+/* Modal */
+.modal-backdrop {
+  position:fixed; inset:0; background:rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center; z-index:999;
+}
+.modal-box {
+  background:#fff; border-radius:8px; padding:2rem; max-width:420px; width:90%;
+  box-shadow:0 8px 32px rgba(0,0,0,.2);
+}
+.modal-box h3 { margin-bottom:.75rem; font-size:1.1rem; }
+.modal-box p  { margin-bottom:1.5rem; line-height:1.5; }
+.modal-actions { display:flex; gap:.75rem; justify-content:flex-end; }
+</style>
+
+<script>
+// ── Filter logic ─────────────────────────────────────────────────────────────
+function applyFilters() {
+  const search   = document.getElementById('search-input').value.toLowerCase();
+  const origin   = document.getElementById('filter-origin').value.toLowerCase();
+  const dest     = document.getElementById('filter-dest').value.toLowerCase();
+  const type     = document.getElementById('filter-type').value.toLowerCase();
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo   = document.getElementById('filter-date-to').value;
+
+  const rows = document.querySelectorAll('#transfers-body tr');
+  let visible = 0;
+
+  rows.forEach(row => {
+    const collectno = row.dataset.collectno || '';
+    const rowOrigin = row.dataset.origin || '';
+    const rowDest   = row.dataset.dest   || '';
+    const rowType   = row.dataset.type   || '';
+    const rowDate   = row.dataset.date   || '';
+
+    const matchSearch = !search || collectno.includes(search) ||
+                        rowOrigin.includes(search) || rowDest.includes(search);
+    const matchOrigin = !origin || rowOrigin.includes(origin);
+    const matchDest   = !dest   || rowDest.includes(dest);
+    const matchType   = !type   || rowType.includes(type);
+    const matchFrom   = !dateFrom || rowDate >= dateFrom;
+    const matchTo     = !dateTo   || rowDate <= dateTo;
+
+    const show = matchSearch && matchOrigin && matchDest && matchType && matchFrom && matchTo;
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  const summary = document.getElementById('filter-summary');
+  const total = rows.length;
+  if (visible < total) {
+    summary.style.display = '';
+    document.getElementById('visible-count').textContent = visible;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function clearFilters() {
+  ['search-input','filter-origin','filter-dest','filter-type','filter-date-from','filter-date-to']
+    .forEach(id => { const el = document.getElementById(id); el.value = ''; });
+  applyFilters();
+}
+
+// ── Sort logic ────────────────────────────────────────────────────────────────
+let sortState = { col: -1, asc: true };
+
+function sortTable(col) {
+  const tbody = document.getElementById('transfers-body');
+  const rows  = Array.from(tbody.querySelectorAll('tr'));
+  const asc   = sortState.col === col ? !sortState.asc : true;
+  sortState   = { col, asc };
+
+  rows.sort((a, b) => {
+    const av = a.cells[col]?.textContent.trim() || '';
+    const bv = b.cells[col]?.textContent.trim() || '';
+    return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+  });
+  rows.forEach(r => tbody.appendChild(r));
+
+  document.querySelectorAll('th').forEach((th, i) => {
+    th.classList.remove('sorted-asc','sorted-desc');
+    if (i === col) th.classList.add(asc ? 'sorted-asc' : 'sorted-desc');
+  });
+}
+
+// ── Delete modal ──────────────────────────────────────────────────────────────
+function confirmDelete(id, ref) {
+  document.getElementById('delete-ref').textContent = ref;
+  document.getElementById('delete-form').action = `/logistics/transfer/${id}/delete`;
+  document.getElementById('delete-modal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('delete-modal').style.display = 'none';
+}
+document.getElementById('delete-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+// ── CSV export ────────────────────────────────────────────────────────────────
+function exportCSV() {
+  const rows = document.querySelectorAll('#transfers-body tr');
+  const headers = ['Collection No','Type','Origin','Destination','Collection Date','Delivery Date','Pieces','Cartons','Status','Submitted'];
+  const lines = [headers.join(',')];
+
+  rows.forEach(row => {
+    if (row.style.display === 'none') return;
+    const cells = Array.from(row.cells).slice(0, 10);
+    const vals  = cells.map(c => `"${c.textContent.trim().replace(/"/g,'""')}"`);
+    lines.push(vals.join(','));
+  });
+
+  const blob = new Blob([lines.join('\n')], { type:'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `sacoor-logistics-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+</script>
+{% endblock %}

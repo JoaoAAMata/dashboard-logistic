@@ -6,6 +6,13 @@
       "runtimeExecutable": "powershell",
       "runtimeArgs": ["-File", "serve.ps1"],
       "port": 8765
+    },
+    {
+      "name": "portal",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "main:app", "--reload", "--port", "8000"],
+      "cwd": "portal",
+      "port": 8000
     }
   ]
 }

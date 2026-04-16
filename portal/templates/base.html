@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% block title %}Sacoor Logistics{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-brand">
+    <span class="brand-sacoor">SACOOR</span><span class="brand-brothers">brothers</span>
+    <span class="brand-sep">|</span>
+    <span class="brand-portal">Logistics Portal</span>
+  </div>
+  {% if session %}
+  <div class="navbar-right">
+    <span class="nav-user">{{ session.store_name }}</span>
+    <a href="/change-pin" class="nav-link">PIN</a>
+    <a href="/logout" class="nav-link nav-logout">Logout</a>
+  </div>
+  {% endif %}
+</nav>
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+</body>
+</html>
