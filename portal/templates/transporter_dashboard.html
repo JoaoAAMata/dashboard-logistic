@@ -30,23 +30,20 @@
 </div>
 
 {% if transfers %}
-<div class="card" style="padding:0;overflow:hidden">
-  <table class="table" id="transporter-table">
+<div class="card" style="padding:0; overflow-x:auto">
+  <table class="table" id="transporter-table" style="min-width:900px">
     <thead>
       <tr>
         <th>Collection No</th>
         <th>Type</th>
-        <th>From (Origin)</th>
-        <th>To (Destination)</th>
-        <th>Collection Date</th>
-        <th>Delivery Date</th>
-        <th>Pcs</th>
-        <th>Ctn</th>
-        <th>Rln</th>
-        <th>Warehouse Date</th>
-        <th>Receipt Date</th>
+        <th>From → To</th>
+        <th>Collection</th>
+        <th>Delivery</th>
+        <th style="text-align:center">Pcs</th>
+        <th style="text-align:center">Ctn</th>
+        <th style="text-align:center">Rln</th>
         <th>Status</th>
-        <th style="width:180px"></th>
+        <th style="min-width:220px">Action</th>
       </tr>
     </thead>
     <tbody>
@@ -58,15 +55,15 @@
             {% if t.form_type == 'decoration' %}🎨 Deco{% else %}📦 Stock{% endif %}
           </span>
         </td>
-        <td class="text-sm">{{ t.from_store_name }}</td>
-        <td class="text-sm">{{ t.to_store_name }}</td>
-        <td>{{ t.collection_date }}</td>
-        <td>{{ t.delivery_date }}</td>
-        <td>{{ t.total_pcs }}</td>
-        <td>{{ t.total_ctn }}</td>
-        <td>{{ t.total_rln or 0 }}</td>
-        <td class="text-sm">{{ t.warehouse_date or '—' }}</td>
-        <td class="text-sm">{{ t.receipt_date or '—' }}</td>
+        <td class="text-sm">
+          <span style="color:var(--muted)">{{ t.from_store_name }}</span><br/>
+          <strong>{{ t.to_store_name }}</strong>
+        </td>
+        <td class="text-sm">{{ t.collection_date }}</td>
+        <td class="text-sm">{{ t.delivery_date }}</td>
+        <td style="text-align:center">{{ t.total_pcs }}</td>
+        <td style="text-align:center">{{ t.total_ctn }}</td>
+        <td style="text-align:center">{{ t.total_rln or 0 }}</td>
         <td>
           <span class="badge badge-{{ t.status }}">
             {% if t.status == 'approved' %}🟡 Awaiting
@@ -75,15 +72,21 @@
             {% elif t.status == 'incorrect' %}⚠️ Incorrect
             {% else %}{{ t.status }}{% endif %}
           </span>
+          {% if t.warehouse_date %}
+          <div class="text-sm text-muted" style="margin-top:.2rem">📦 {{ t.warehouse_date }}</div>
+          {% endif %}
+          {% if t.receipt_date %}
+          <div class="text-sm text-muted" style="margin-top:.1rem">🏪 {{ t.receipt_date }}</div>
+          {% endif %}
         </td>
-        <td class="row-actions">
-          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇</a>
+        <td>
+          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇ PDF</a>
           {% if t.status == 'approved' %}
-          <form method="post" action="/transporter/transfer/{{ t.id }}/warehouse">
-            <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap;margin-top:.2rem">
+          <form method="post" action="/transporter/transfer/{{ t.id }}/warehouse" style="display:inline-block;margin-top:.35rem">
+            <div style="display:flex;align-items:center;gap:.3rem">
               <input type="date" name="warehouse_date" value="{{ today }}" required
-                     style="font-size:.75rem;padding:.2rem .4rem;border:1px solid #90caf9;border-radius:4px;color:#0d47a1"/>
-              <button type="submit" class="btn btn-sm btn-warehouse">🏭 Warehouse</button>
+                     style="font-size:.75rem;padding:.25rem .4rem;border:1px solid #90caf9;border-radius:4px;color:#0d47a1;width:130px"/>
+              <button type="submit" class="btn btn-sm btn-warehouse">🏭</button>
             </div>
           </form>
           {% endif %}
@@ -102,7 +105,7 @@
 <style>
 .badge-warehouse { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; }
 .stat-warehouse  { border-left:3px solid #1976d2; }
-.btn-warehouse   { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; font-size:.75rem; }
-.btn-warehouse:hover { background:#1976d2; color:#fff; }
+.btn-warehouse   { background:#1976d2; color:#fff; border:none; padding:.3rem .6rem; border-radius:4px; font-size:.85rem; cursor:pointer; }
+.btn-warehouse:hover { background:#0d47a1; }
 </style>
 {% endblock %}
