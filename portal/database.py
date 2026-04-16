@@ -6,34 +6,102 @@ DB_PATH = "logistics.db"
 
 DEFAULT_PIN = "1234"
 
+# Tuple format: (store_code, store_name, username, address, city, country, is_admin)
 STORES = [
-    ("M1UT",  "M1UT Store MY 1Utama Blue & One Blue",       "m1ut",           "Lebuh Bandar Utama",                                  "Petaling Jaya",    "Malaysia", 0),
-    ("MBAN",  "MBAN Store MY Bangsar Village Brothers",      "mban",           "Jalan Telawi Satu",                                   "Kuala Lumpur",     "Malaysia", 0),
-    ("MDVI",  "MDVI Store MY Design Village Outlet",         "mdvi",           "Jalan Cassia Barat 2",                                "Penang",           "Malaysia", 0),
-    ("MMAL",  "MMAL Store MY Freeport Malaca Outlet",        "mmal",           "Jalan Kemus/Simpang Ampat",                           "Melaka",           "Malaysia", 0),
-    ("MGAR",  "MGAR Store MY Gardens Brothers",              "mgar",           "Lingkaran Syed Putra",                                "Kuala Lumpur",     "Malaysia", 0),
-    ("MGEN",  "MGEN Store MY Genting Blue BlueOut",          "mgen_blue",      "Genting Highlands Premium Outlet, Unit 544",          "Genting Highlands","Malaysia", 0),
-    ("MGEN",  "MGEN Store MY Genting Highlands Outlet",      "mgen_highlands", "Genting Highlands Premium Outlet, Unit 126",          "Genting Highlands","Malaysia", 0),
-    ("MGUR",  "MGUR Store MY Gurney Plaza Brothers",         "mgur",           "Persiaran Gurney",                                    "Penang",           "Malaysia", 0),
-    ("MIMA",  "MIMA Store MY Imago Brothers",                "mima",           "Off Coastal Highway",                                 "Kota Kinabalu",    "Malaysia", 0),
-    ("MJOH",  "MJOH Store MY Johor Bahru Outlet",            "mjoh_outlet",    "Johor Bahru Premium Outlet",                          "Johor",            "Malaysia", 0),
-    ("MJOH",  "MJOH Store MY Johor Bahru Blue BlueOut",      "mjoh_blue",      "Johor Bahru Premium Outlet",                          "Johor",            "Malaysia", 0),
-    ("MJOH",  "MJOH Store MY Johor Bahru Classic Outlet",    "mjoh_classic",   "Johor Bahru Premium Outlet",                          "Johor",            "Malaysia", 0),
-    ("MLAL",  "MLAL Store MY Lalaport Brothers",             "mlal_brothers",  "Jln Hang Tuah",                                       "Kuala Lumpur",     "Malaysia", 0),
-    ("MLAL",  "MLAL Store MY Lalaport Blue Blue",            "mlal_blue",      "Mitsui Shopping Park LaLaport, G-15D",                "Kuala Lumpur",     "Malaysia", 0),
-    ("MLAL",  "MLAL Store MY Lalaport One One",              "mlal_one",       "Mitsui Shopping Park LaLaport, G-53",                 "Kuala Lumpur",     "Malaysia", 0),
-    ("MMIT",  "MMIT Store MY Mitsui Outlet",                 "mmit_outlet",    "Persiaran Komersial",                                 "Sepang",           "Malaysia", 0),
-    ("MMIT",  "MMIT Store MY Mitsui Blue BlueOut",           "mmit_blue",      "Persiaran Komersial",                                 "Sepang",           "Malaysia", 0),
-    ("MMIT",  "MMIT Store MY Mitsui Classic Outlet",         "mmit_classic",   "Persiaran Komersial",                                 "Sepang",           "Malaysia", 0),
-    ("MMIT",  "MMIT Store MY Mitsui Women Outlet",           "mmit_women",     "Persiaran Komersial",                                 "Sepang",           "Malaysia", 0),
-    ("MPAV",  "MPAV Store MY Pavilion Brothers",             "mpav",           "Jalan Bukit Bintang",                                 "Kuala Lumpur",     "Malaysia", 0),
-    ("MQUE",  "MQUE Store MY Queensbay Brothers",            "mque",           "Persiaran Bayan Indah",                               "Penang",           "Malaysia", 0),
-    ("MSUN",  "MSUN Store MY Sunway Brothers",               "msun",           "Sunway Pyramid, Unit: G1.06",                         "Petaling Jaya",    "Malaysia", 0),
-    ("MKLC",  "MKLC Store MY Suria KLCC Brothers",           "mklc",           "Suria KLCC, Lot No. 231B/232, Level 2",               "Kuala Lumpur",     "Malaysia", 0),
-    ("MTRX",  "MTRX Store MY TRX Brothers",                  "mtrx",           "Persiaran TRX",                                       "Kuala Lumpur",     "Malaysia", 0),
-    ("DHL",   "SACOOR DHL Warehouse",                        "dhl_sacoor",     "50, Persiaran Perusahaan, Kawasan Miel, Shah Alam",    "Selangor",         "Malaysia", 0),
-    # Admin account — logistics team
-    ("PVOFF", "SACOOR HQ - Logistics",                       "logistics",      "Jalan Bukit Bintang",                                 "Kuala Lumpur",     "Malaysia", 1),
+    # ── Warehouse ─────────────────────────────────────────────────────────────
+    ("DHL-SACOOR", "SACOOR DHL Warehouse",                   "dhl_sacoor",
+     "50, Persiaran Perusahaan, Kawasan Miel, 40300 Shah Alam",               "Selangor",      "Malaysia", 0),
+
+    # ── Stores ────────────────────────────────────────────────────────────────
+    ("IMAG",    "IMAG - Imago Brothers",                     "imag",
+     "Imago Shopping Mall, Unit G-25, KK Times Square Phase 2, Off Coastal Highway, 88100 Kota Kinabalu",
+                                                                               "Sabah",         "Malaysia", 0),
+
+    ("M1UTAB",  "M1UTAB - 1 Utama Brothers",                "m1utab",
+     "1 Utama Shopping Centre, Unit G-129, Old Wing, 1, Lebuh Bandar Utama, Bandar Utama, 47800 Petaling Jaya",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MALA",    "MALA - Freeport A'Famosa Outlet",           "mala",
+     "Freeport A'Famosa Outlet, Alor Gajah, 78000 Melaka",                    "Malacca",       "Malaysia", 0),
+
+    ("MBGV",    "MBGV - Bangsar Village Brothers",           "mbgv",
+     "Bangsar Village 2, Jalan Telawi 1, Bangsar, 59100 Kuala Lumpur",        "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MDSV",    "MDSV - Design Village Outlet",              "mdsv",
+     "Design Village Outlet Mall, Bandar Cassia, 14110 Pulau Pinang",         "Penang",        "Malaysia", 0),
+
+    ("MGAR",    "MGAR - Gardens Brothers",                   "mgar",
+     "The Boulevard, F-221, 1st Floor, 59, Lingkaran Syed Putra, Mid Valley City, 59200 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MGPP",    "MGPP - Gurney Plaza Brothers",              "mgpp",
+     "Gurney Plaza, Georgetown, 10250 Penang",                                 "Penang",        "Malaysia", 0),
+
+    ("MGTI",    "MGTI - Genting Highlands Outlet",           "mgti",
+     "Genting Highlands Premium Outlets, Genting Highlands, 69000 Pahang",    "Pahang",        "Malaysia", 0),
+
+    ("MGTIB",   "MGTIB - Genting Blue Outlet",               "mgtib",
+     "Genting Highlands Premium Outlets, Suite 544, KM13, Genting Highlands Resorts, 69000 Genting Highlands",
+                                                                               "Pahang",        "Malaysia", 0),
+
+    ("MITS",    "MITS - Mitsui Outlet Brothers",             "mits",
+     "Mitsui Outlet Park KLIA, Lot G51, Persiaran Komersial, 64000 KLIA Sepang",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MITSB",   "MITSB - Mitsui Blue",                       "mitsb",
+     "Mitsui Outlet Park KLIA, Unit G26, Ground Floor, Persiaran Komersial, 64000 KLIA Sepang",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MITSO",   "MITSO - Mitsui Classic Outlet",             "mitso",
+     "Mitsui Outlet Park KLIA, Lot G96, Persiaran Komersial, 64000 KLIA Sepang",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MITSP",   "MITSP - Mitsui Women",                      "mitsp",
+     "Mitsui Outlet Park KLIA, Unit G84, Ground Floor, Persiaran Komersial, 64000 KLIA Sepang",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MITSW",   "MITSW - Mitsui Women Outlet",               "mitsw",
+     "Mitsui Outlet Park, Lot G-40, Ground Floor, Persiaran Komersial, 64000 KLIA Sepang",
+                                                                               "Selangor",      "Malaysia", 0),
+
+    ("MJOBB",   "MJOBB - Johor Blue",                        "mjobb",
+     "Johor Bahru Premium Outlet, Unit 530, Indahpura, Kulaijaya, 81000 Johor",
+                                                                               "Johor",         "Malaysia", 0),
+
+    ("MJPO",    "MJPO - Johor Premium Outlets",              "mjpo",
+     "Jalan Premium Outlets Indahpura, 81000 Kulai",                          "Johor",         "Malaysia", 0),
+
+    ("MKLC",    "MKLC - Suria KLCC Brothers",                "mklc",
+     "Suria KLCC, 231B-232, Persiaran Petronas, Kuala Lumpur City Centre, 50088 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MLAL",    "MLAL - Lalaport Brothers",                  "mlal",
+     "Mitsui Lalaport, Unit G-59, 2, Jalan Hang Tuah, Bukit Bintang, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MLALB",   "MLALB - Lalaport Blue",                     "mlalb",
+     "Mitsui Lalaport, Unit G-15D, 2, Jalan Hang Tuah, Bukit Bintang, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MLALO",   "MLALO - Lalaport One",                      "mlalo",
+     "Mitsui Lalaport, Unit G-53, 2, Jalan Hang Tuah, Bukit Bintang, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MPAV",    "MPAV - Pavilion Brothers",                  "mpav",
+     "Pavilion Kuala Lumpur, 168, Jalan Raja Chulan, Bukit Bintang, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MPAVB",   "MPAVB - Pavilion Blue",                     "mpavb",
+     "Pavilion Kuala Lumpur Mall, Lot No. 4.01.03 & 4.01.04, Level 4, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 0),
+
+    ("SUNONE",  "SUNONE - Sunway Pyramid Brothers",          "sunone",
+     "Sunway Pyramid, Unit G1.06, Bandar Sunway, 47500 Petaling Jaya",        "Selangor",      "Malaysia", 0),
+
+    # ── Admin — Logistics HQ ──────────────────────────────────────────────────
+    ("PVOFF",   "SACOOR HQ - Logistics",                     "logistics",
+     "Pavilion Retail Office Block, Level 9, Unit 9.03.00, 55100 Kuala Lumpur",
+                                                                               "Kuala Lumpur",  "Malaysia", 1),
 ]
 
 
@@ -118,12 +186,27 @@ def init_db():
     except Exception:
         pass
 
-    # Seed stores (skip if already seeded)
+    # Sync stores: update existing by username, insert new ones, deactivate removed ones
+    new_usernames = [s[2] for s in STORES]
+    # Deactivate any store whose username is no longer in the master list
+    placeholders = ",".join("?" * len(new_usernames))
+    c.execute(f"UPDATE stores SET is_active = 0 WHERE username NOT IN ({placeholders})", new_usernames)
+
     for store_code, store_name, username, address, city, country, is_admin in STORES:
-        c.execute(
-            "INSERT OR IGNORE INTO stores (store_code, store_name, username, pin_hash, address, city, country, is_admin) VALUES (?,?,?,?,?,?,?,?)",
-            (store_code, store_name, username, hash_pin(DEFAULT_PIN), address, city, country, is_admin)
-        )
+        # Try to update an existing row (preserves pin_hash)
+        updated = c.execute(
+            """UPDATE stores
+               SET store_code=?, store_name=?, address=?, city=?, country=?, is_admin=?, is_active=1
+               WHERE username=?""",
+            (store_code, store_name, address, city, country, is_admin, username)
+        ).rowcount
+        if not updated:
+            # Brand-new store — insert with default PIN
+            c.execute(
+                """INSERT INTO stores (store_code, store_name, username, pin_hash, address, city, country, is_admin)
+                   VALUES (?,?,?,?,?,?,?,?)""",
+                (store_code, store_name, username, hash_pin(DEFAULT_PIN), address, city, country, is_admin)
+            )
 
     conn.commit()
     conn.close()
