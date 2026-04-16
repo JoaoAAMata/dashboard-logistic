@@ -48,7 +48,12 @@ async def root(request: Request):
     s = get_session(request)
     if not s:
         return RedirectResponse("/login")
-    return RedirectResponse("/logistics" if s["is_admin"] else "/store")
+    if s["is_admin"]:
+        return RedirectResponse("/logistics")
+    elif s.get("is_transporter"):
+        return RedirectResponse("/transporter")
+    else:
+        return RedirectResponse("/store")
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -57,7 +62,12 @@ async def root(request: Request):
 async def login_page(request: Request):
     s = get_session(request)
     if s:
-        return RedirectResponse("/logistics" if s["is_admin"] else "/store")
+        if s["is_admin"]:
+            return RedirectResponse("/logistics")
+        elif s.get("is_transporter"):
+            return RedirectResponse("/transporter")
+        else:
+            return RedirectResponse("/store")
     return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -71,13 +81,19 @@ async def login(request: Request, username: str = Form(...), pin: str = Form(...
         })
     sid = secrets.token_hex(32)
     SESSIONS[sid] = {
-        "store_id":   store["id"],
-        "store_name": store["store_name"],
-        "store_code": store["store_code"],
-        "username":   store["username"],
-        "is_admin":   bool(store["is_admin"]),
+        "store_id":       store["id"],
+        "store_name":     store["store_name"],
+        "store_code":     store["store_code"],
+        "username":       store["username"],
+        "is_admin":       bool(store["is_admin"]),
+        "is_transporter": bool(store.get("is_transporter", 0)),
     }
-    url = "/logistics" if store["is_admin"] else "/store"
+    if store["is_admin"]:
+        url = "/logistics"
+    elif store.get("is_transporter"):
+        url = "/transporter"
+    else:
+        url = "/store"
     r = RedirectResponse(url, status_code=302)
     r.set_cookie("sid", sid, httponly=True)
     return r
@@ -243,6 +259,7 @@ async def logistics_dashboard(request: Request, status: str = ""):
         "all":       len(all_transfers),
         "pending":   sum(1 for t in all_transfers if t["status"] == "pending"),
         "approved":  sum(1 for t in all_transfers if t["status"] == "approved"),
+        "warehouse": sum(1 for t in all_transfers if t["status"] == "warehouse"),
         "rejected":  sum(1 for t in all_transfers if t["status"] == "rejected"),
         "completed": sum(1 for t in all_transfers if t["status"] == "completed"),
         "incorrect": sum(1 for t in all_transfers if t["status"] == "incorrect"),
@@ -379,6 +396,44 @@ async def logistics_receipt(request: Request, tid: int):
     if receipt_status in ("completed", "incorrect"):
         database.update_receipt_status(tid, receipt_status, receipt_note)
     return RedirectResponse(f"/logistics/transfer/{tid}?updated=1", status_code=302)
+
+
+# ── Transporter portal ────────────────────────────────────────────────────────
+
+@app.get("/transporter", response_class=HTMLResponse)
+async def transporter_dashboard(request: Request):
+    s = get_session(request)
+    if not s or not s.get("is_transporter"):
+        return RedirectResponse("/login")
+    transfers = database.get_transfers_for_transporter()
+    counts = {
+        "all":       len(transfers),
+        "approved":  sum(1 for t in transfers if t["status"] == "approved"),
+        "warehouse": sum(1 for t in transfers if t["status"] == "warehouse"),
+        "completed": sum(1 for t in transfers if t["status"] in ("completed", "incorrect")),
+    }
+    return templates.TemplateResponse("transporter_dashboard.html", {
+        "request": request, "session": s,
+        "transfers": transfers, "counts": counts,
+    })
+
+
+@app.post("/transporter/transfer/{tid}/warehouse")
+async def mark_warehouse(request: Request, tid: int):
+    s = get_session(request)
+    if not s or not s.get("is_transporter"):
+        return RedirectResponse("/login")
+    database.update_transporter_status(tid, "warehouse")
+    return RedirectResponse("/transporter?warehouse=1", status_code=302)
+
+
+@app.post("/transporter/transfer/{tid}/out-for-delivery")
+async def mark_out_for_delivery(request: Request, tid: int):
+    s = get_session(request)
+    if not s or not s.get("is_transporter"):
+        return RedirectResponse("/login")
+    database.update_transporter_status(tid, "approved")
+    return RedirectResponse("/transporter", status_code=302)
 
 
 @app.post("/logistics/bulk-approve")

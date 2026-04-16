@@ -2,7 +2,8 @@ import sqlite3
 import hashlib
 from datetime import datetime
 
-DB_PATH = "logistics.db"
+import os as _os
+DB_PATH = _os.environ.get("DB_PATH", "logistics.db")
 
 DEFAULT_PIN = "1234"
 
@@ -105,6 +106,13 @@ STORES = [
 ]
 
 
+# Transporter accounts (seeded separately from stores)
+TRANSPORTERS = [
+    ("DHL", "DHL Malaysia - Transporter", "dhl_transport",
+     "50, Persiaran Perusahaan, Kawasan Miel, 40300 Shah Alam", "Selangor", "Malaysia"),
+]
+
+
 def hash_pin(pin: str) -> str:
     return hashlib.sha256(pin.encode()).hexdigest()
 
@@ -192,6 +200,12 @@ def init_db():
     except Exception:
         pass
 
+    # Add is_transporter column if upgrading from older DB
+    try:
+        c.execute("ALTER TABLE stores ADD COLUMN is_transporter INTEGER DEFAULT 0")
+    except Exception:
+        pass
+
     # Sync stores: update existing by username, insert new ones, deactivate removed ones
     new_usernames = [s[2] for s in STORES]
     # Deactivate any store whose username is no longer in the master list
@@ -212,6 +226,23 @@ def init_db():
                 """INSERT INTO stores (store_code, store_name, username, pin_hash, address, city, country, is_admin)
                    VALUES (?,?,?,?,?,?,?,?)""",
                 (store_code, store_name, username, hash_pin(DEFAULT_PIN), address, city, country, is_admin)
+            )
+
+    # Seed transporter accounts
+    for store_code, store_name, username, address, city, country in TRANSPORTERS:
+        updated = c.execute(
+            """UPDATE stores
+               SET store_code=?, store_name=?, address=?, city=?, country=?,
+                   is_admin=0, is_transporter=1, is_active=1
+               WHERE username=?""",
+            (store_code, store_name, address, city, country, username)
+        ).rowcount
+        if not updated:
+            c.execute(
+                """INSERT INTO stores
+                   (store_code, store_name, username, pin_hash, address, city, country, is_admin, is_transporter)
+                   VALUES (?,?,?,?,?,?,?,0,1)""",
+                (store_code, store_name, username, hash_pin(DEFAULT_PIN), address, city, country)
             )
 
     conn.commit()
@@ -447,6 +478,34 @@ def update_receipt_status(transfer_id: int, status: str, note: str = ""):
     conn.execute(
         "UPDATE transfers SET status = ?, receipt_note = ?, updated_at = ? WHERE id = ?",
         (status, note or "", datetime.utcnow().isoformat(), transfer_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_transfers_for_transporter():
+    """Returns all approved/warehouse transfers for the transporter to act on."""
+    conn = get_conn()
+    rows = conn.execute("""
+        SELECT t.*,
+               sf.store_name as from_store_name,
+               st.store_name as to_store_name
+        FROM transfers t
+        JOIN stores sf ON sf.id = t.from_store_id
+        JOIN stores st ON st.id = t.to_store_id
+        WHERE t.status IN ('approved', 'warehouse', 'completed', 'incorrect')
+        ORDER BY t.collection_date ASC
+    """).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def update_transporter_status(transfer_id: int, status: str):
+    """Transporter marks transfer as arrived at warehouse hub."""
+    conn = get_conn()
+    conn.execute(
+        "UPDATE transfers SET status = ?, updated_at = ? WHERE id = ?",
+        (status, datetime.utcnow().isoformat(), transfer_id)
     )
     conn.commit()
     conn.close()

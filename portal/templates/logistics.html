@@ -26,6 +26,10 @@
     <div class="stat-value">{{ counts.approved }}</div>
     <div class="stat-label">Approved</div>
   </a>
+  <a href="/logistics?status=warehouse" class="stat-card stat-warehouse {% if active_filter == 'warehouse' %}stat-active{% endif %}">
+    <div class="stat-value">{{ counts.warehouse }}</div>
+    <div class="stat-label">Warehouse</div>
+  </a>
   <a href="/logistics?status=completed" class="stat-card stat-completed {% if active_filter == 'completed' %}stat-active{% endif %}">
     <div class="stat-value">{{ counts.completed }}</div>
     <div class="stat-label">Completed</div>
@@ -150,6 +154,7 @@
           <span class="badge badge-{{ t.status }}">
             {% if t.status == 'pending' %}⏳ Pending
             {% elif t.status == 'approved' %}✅ Approved
+            {% elif t.status == 'warehouse' %}🏭 Warehouse
             {% elif t.status == 'completed' %}📦 Completed
             {% elif t.status == 'incorrect' %}⚠️ Incorrect
             {% else %}❌ Rejected{% endif %}
@@ -211,6 +216,8 @@ th.sorted-desc .sort-icon::after { content:'▼'; opacity:1; }
 /* Receipt status badges */
 .badge-completed { background:#d4edda; color:#155724; border:1px solid #c3e6cb; }
 .badge-incorrect  { background:#fff3cd; color:#856404; border:1px solid #ffeeba; }
+.badge-warehouse { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; }
+.stat-warehouse  { border-left:3px solid #1976d2; }
 
 /* Stat cards for new statuses */
 .stat-completed { border-left:3px solid #28a745; }

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}DHL Transporter Portal{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🚚 Transporter Portal</h1>
+    <p class="text-muted">{{ session.store_name }}</p>
+  </div>
+</div>
+
+{% if request.query_params.get('warehouse') %}
+<div class="alert alert-success">Transfer marked as arrived at warehouse.</div>
+{% endif %}
+
+<!-- Summary cards -->
+<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem">
+  <div class="stat-card">
+    <div class="stat-value">{{ counts.approved }}</div>
+    <div class="stat-label">Awaiting Collection</div>
+  </div>
+  <div class="stat-card stat-warehouse">
+    <div class="stat-value">{{ counts.warehouse }}</div>
+    <div class="stat-label">At Warehouse</div>
+  </div>
+  <div class="stat-card stat-approved">
+    <div class="stat-value">{{ counts.completed }}</div>
+    <div class="stat-label">Delivered</div>
+  </div>
+</div>
+
+{% if transfers %}
+<div class="card" style="padding:0;overflow:hidden">
+  <table class="table" id="transporter-table">
+    <thead>
+      <tr>
+        <th>Collection No</th>
+        <th>Type</th>
+        <th>From (Origin)</th>
+        <th>To (Destination)</th>
+        <th>Collection Date</th>
+        <th>Delivery Date</th>
+        <th>Pcs</th>
+        <th>Ctn</th>
+        <th>Rln</th>
+        <th>Status</th>
+        <th style="width:140px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transfers %}
+      <tr>
+        <td><strong>{{ t.collect_no }}</strong></td>
+        <td>
+          <span class="badge badge-type-{{ t.form_type or 'commercial' }}">
+            {% if t.form_type == 'decoration' %}🎨 Deco{% else %}📦 Stock{% endif %}
+          </span>
+        </td>
+        <td class="text-sm">{{ t.from_store_name }}</td>
+        <td class="text-sm">{{ t.to_store_name }}</td>
+        <td>{{ t.collection_date }}</td>
+        <td>{{ t.delivery_date }}</td>
+        <td>{{ t.total_pcs }}</td>
+        <td>{{ t.total_ctn }}</td>
+        <td>{{ t.total_rln or 0 }}</td>
+        <td>
+          <span class="badge badge-{{ t.status }}">
+            {% if t.status == 'approved' %}🟡 Awaiting
+            {% elif t.status == 'warehouse' %}🏭 Warehouse
+            {% elif t.status == 'completed' %}✅ Delivered
+            {% elif t.status == 'incorrect' %}⚠️ Incorrect
+            {% else %}{{ t.status }}{% endif %}
+          </span>
+        </td>
+        <td class="row-actions">
+          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇</a>
+          {% if t.status == 'approved' %}
+          <form method="post" action="/transporter/transfer/{{ t.id }}/warehouse" style="display:inline">
+            <button type="submit" class="btn btn-sm btn-warehouse" title="Mark as arrived at warehouse">🏭 Warehouse</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state">
+  <p>No active transfers assigned.</p>
+</div>
+{% endif %}
+
+<style>
+.badge-warehouse { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; }
+.stat-warehouse  { border-left:3px solid #1976d2; }
+.btn-warehouse   { background:#e3f2fd; color:#0d47a1; border:1px solid #90caf9; font-size:.75rem; }
+.btn-warehouse:hover { background:#1976d2; color:#fff; }
+</style>
+{% endblock %}
