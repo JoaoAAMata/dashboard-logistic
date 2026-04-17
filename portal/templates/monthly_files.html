@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} — Sacoor Logistics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ page_icon }} {{ page_title }}</h1>
+    <p class="text-muted">{{ page_subtitle }}</p>
+  </div>
+  <a href="/home" class="btn btn-secondary">← Home</a>
+</div>
+
+{% if session.is_admin %}
+<!-- Upload card -->
+<div class="card" style="margin-bottom:1.5rem;padding:1.1rem 1.25rem">
+  <div style="font-weight:700;margin-bottom:.75rem;font-size:.95rem">⬆ Upload Monthly File</div>
+  <form method="post" action="{{ upload_url }}" enctype="multipart/form-data">
+    <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:.3rem">
+        <label style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">Month</label>
+        <select name="month" required style="padding:.45rem .75rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem;min-width:140px">
+          {% for m in months %}
+          <option value="{{ m.value }}">{{ m.label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.3rem;flex:1;min-width:220px">
+        <label style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">File (.xlsx)</label>
+        <input type="file" name="file" accept=".xlsx,.xls" required
+               style="padding:.4rem .6rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem;background:#fff"/>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload</button>
+    </div>
+  </form>
+  {% if success %}<div class="alert alert-success" style="margin-top:.75rem;margin-bottom:0">{{ success }}</div>{% endif %}
+  {% if error   %}<div class="alert alert-error"   style="margin-top:.75rem;margin-bottom:0">{{ error }}</div>{% endif %}
+</div>
+{% endif %}
+
+<!-- Month grid -->
+<div class="month-grid">
+  {% for m in months %}
+  <div class="month-card {% if m.available %}month-card-ok{% else %}month-card-empty{% endif %}">
+    <div class="month-name">{{ m.label }}</div>
+    {% if m.available %}
+      <div class="month-status">✅ Uploaded</div>
+      <div class="month-updated text-sm text-muted">{{ m.updated }}</div>
+      <div style="margin-top:auto;padding-top:.75rem">
+        <a href="{{ download_url }}/{{ m.value }}" class="btn btn-sm btn-secondary" style="width:100%;justify-content:center">
+          ⬇ Download
+        </a>
+      </div>
+    {% else %}
+      <div class="month-status month-status-empty">— No file</div>
+      {% if session.is_admin %}
+      <div class="text-sm text-muted" style="margin-top:.25rem">Upload using the form above</div>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
+}
+.month-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 1.1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  min-height: 130px;
+  border-top: 3px solid var(--grey-bd);
+}
+.month-card-ok    { border-top-color: var(--green); }
+.month-card-empty { opacity: .6; }
+.month-name   { font-size: .95rem; font-weight: 700; color: var(--dark); }
+.month-status { font-size: .78rem; font-weight: 600; color: var(--green); }
+.month-status-empty { color: var(--muted); font-weight: 400; }
+.month-updated{ font-size: .72rem; }
+
+@media (max-width: 900px)  { .month-grid { grid-template-columns: repeat(4,1fr); } }
+@media (max-width: 600px)  { .month-grid { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 400px)  { .month-grid { grid-template-columns: repeat(2,1fr); } }
+</style>
+{% endblock %}

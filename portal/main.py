@@ -607,6 +607,173 @@ async def serve_stock_data(request: Request):
     )
 
 
+# ── Monthly file helper ───────────────────────────────────────────────────────
+
+_DATA_DIR = os.path.dirname(os.path.abspath(database.DB_PATH))
+
+_MONTHS = [
+    ("01","January"),("02","February"),("03","March"),("04","April"),
+    ("05","May"),("06","June"),("07","July"),("08","August"),
+    ("09","September"),("10","October"),("11","November"),("12","December"),
+]
+
+def _monthly_context(prefix: str, upload_url: str, download_url: str,
+                     page_title: str, page_subtitle: str, page_icon: str,
+                     success: str = "", error: str = "") -> dict:
+    import datetime as _dt
+    months = []
+    for val, label in _MONTHS:
+        path = os.path.join(_DATA_DIR, f"{prefix}_{val}.xlsx")
+        exists = os.path.exists(path)
+        updated = ""
+        if exists:
+            ts = os.path.getmtime(path)
+            updated = _dt.datetime.fromtimestamp(ts).strftime("%d %b %Y")
+        months.append({"value": val, "label": label, "available": exists, "updated": updated})
+    return {
+        "months": months,
+        "upload_url": upload_url,
+        "download_url": download_url,
+        "page_title": page_title,
+        "page_subtitle": page_subtitle,
+        "page_icon": page_icon,
+        "success": success,
+        "error": error,
+    }
+
+
+async def _handle_monthly_upload(request: Request, prefix: str, file: UploadFile) -> str:
+    """Save uploaded file; return error string or empty string on success."""
+    form = await request.form()
+    month = form.get("month", "")
+    if month not in [m[0] for m in _MONTHS]:
+        return "Invalid month selected."
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in (".xlsx", ".xls"):
+        return "Only .xlsx files are accepted."
+    content = await file.read()
+    dest = os.path.join(_DATA_DIR, f"{prefix}_{month}.xlsx")
+    with open(dest, "wb") as f:
+        f.write(content)
+    return ""
+
+
+# ── Inventory Results ─────────────────────────────────────────────────────────
+
+@app.get("/inventory-results", response_class=HTMLResponse)
+async def inventory_results(request: Request, success: str = "", error: str = ""):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    ctx = _monthly_context(
+        prefix="stock_count_2026",
+        upload_url="/inventory-results/upload",
+        download_url="/inventory-results/download",
+        page_title="Inventory Results — Stock Count 2026",
+        page_subtitle="Monthly stock count files · Upload by logistics, download by all stores",
+        page_icon="📋",
+        success=success, error=error,
+    )
+    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx})
+
+
+@app.post("/inventory-results/upload")
+async def inventory_upload(request: Request, file: UploadFile = File(...)):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    # re-read form for month (file already consumed by FastAPI)
+    form = await request.form()
+    month = str(form.get("month", ""))
+    if month not in [m[0] for m in _MONTHS]:
+        return RedirectResponse("/inventory-results?error=Invalid+month", status_code=302)
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in (".xlsx", ".xls"):
+        return RedirectResponse("/inventory-results?error=Only+.xlsx+accepted", status_code=302)
+    content = await file.read()
+    dest = os.path.join(_DATA_DIR, f"stock_count_2026_{month}.xlsx")
+    with open(dest, "wb") as f:
+        f.write(content)
+    month_name = dict(_MONTHS)[month]
+    return RedirectResponse(f"/inventory-results?success={month_name}+uploaded+successfully", status_code=302)
+
+
+@app.get("/inventory-results/download/{month}")
+async def inventory_download(request: Request, month: str):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    path = os.path.join(_DATA_DIR, f"stock_count_2026_{month}.xlsx")
+    if not os.path.exists(path):
+        return RedirectResponse("/inventory-results")
+    with open(path, "rb") as f:
+        data = f.read()
+    month_name = dict(_MONTHS).get(month, month)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="StockCount_2026_{month_name}.xlsx"'},
+    )
+
+
+# ── NOOS Sales 2026 ───────────────────────────────────────────────────────────
+
+@app.get("/noos-sales", response_class=HTMLResponse)
+async def noos_sales(request: Request, success: str = "", error: str = ""):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    ctx = _monthly_context(
+        prefix="noos_sales_2026",
+        upload_url="/noos-sales/upload",
+        download_url="/noos-sales/download",
+        page_title="NOOS Sales 2026",
+        page_subtitle="Monthly NOOS sales reports · Upload by logistics, download by all stores",
+        page_icon="📈",
+        success=success, error=error,
+    )
+    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx})
+
+
+@app.post("/noos-sales/upload")
+async def noos_upload(request: Request, file: UploadFile = File(...)):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    form = await request.form()
+    month = str(form.get("month", ""))
+    if month not in [m[0] for m in _MONTHS]:
+        return RedirectResponse("/noos-sales?error=Invalid+month", status_code=302)
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in (".xlsx", ".xls"):
+        return RedirectResponse("/noos-sales?error=Only+.xlsx+accepted", status_code=302)
+    content = await file.read()
+    dest = os.path.join(_DATA_DIR, f"noos_sales_2026_{month}.xlsx")
+    with open(dest, "wb") as f:
+        f.write(content)
+    month_name = dict(_MONTHS)[month]
+    return RedirectResponse(f"/noos-sales?success={month_name}+uploaded+successfully", status_code=302)
+
+
+@app.get("/noos-sales/download/{month}")
+async def noos_download(request: Request, month: str):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    path = os.path.join(_DATA_DIR, f"noos_sales_2026_{month}.xlsx")
+    if not os.path.exists(path):
+        return RedirectResponse("/noos-sales")
+    with open(path, "rb") as f:
+        data = f.read()
+    month_name = dict(_MONTHS).get(month, month)
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="NOOS_Sales_2026_{month_name}.xlsx"'},
+    )
+
+
 # ── Stock Delivery ────────────────────────────────────────────────────────────
 
 def _parse_date_str(val) -> str:

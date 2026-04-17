@@ -70,17 +70,20 @@
   </div>
 
   <!-- ── 3. INVENTORY RESULTS ─────────────────── stores + admin only ─────── -->
-  <div class="hub-card hub-card-soon">
-    <div class="hub-badge-soon">Coming Soon</div>
-    <div class="hub-icon hub-icon-muted">📊</div>
+  <div class="hub-card hub-card-active">
+    <div class="hub-icon">📋</div>
     <div class="hub-body">
       <h2 class="hub-title">Inventory Results</h2>
       <p class="hub-desc">
-        Submit periodic inventory count results, review discrepancies and track adjustment approvals.
+        {% if session.is_admin %}
+          Upload monthly Stock Count 2026 results by store. All months available to download.
+        {% else %}
+          View monthly inventory count results and stock count files for 2026.
+        {% endif %}
       </p>
     </div>
     <div class="hub-footer">
-      <button class="btn btn-secondary" disabled>Not Available Yet</button>
+      <a href="/inventory-results" class="btn btn-primary">Open →</a>
     </div>
   </div>
 
@@ -103,6 +106,24 @@
       {% else %}
         <a href="/stock-delivery" class="btn btn-primary">View Schedule →</a>
       {% endif %}
+    </div>
+  </div>
+
+  <!-- ── 5. NOOS SALES 2026 ─────────────────────── stores + admin only ─────── -->
+  <div class="hub-card hub-card-active">
+    <div class="hub-icon">📈</div>
+    <div class="hub-body">
+      <h2 class="hub-title">NOOS Sales 2026</h2>
+      <p class="hub-desc">
+        {% if session.is_admin %}
+          Upload monthly NOOS sales reports. Available for all stores to view and download.
+        {% else %}
+          View and download monthly NOOS sales reports for 2026.
+        {% endif %}
+      </p>
+    </div>
+    <div class="hub-footer">
+      <a href="/noos-sales" class="btn btn-primary">Open →</a>
     </div>
   </div>
   {% endif %}
