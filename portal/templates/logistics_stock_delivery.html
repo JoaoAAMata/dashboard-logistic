@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Stock Delivery — Logistics{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🚛 Stock Delivery</h1>
+    <p class="text-muted">Upload daily delivery schedule — visible to all stores</p>
+  </div>
+  <div class="header-actions">
+    <a href="/logistics" class="btn btn-secondary">← Back to Logistics</a>
+  </div>
+</div>
+
+<!-- Upload card -->
+<div class="card" style="margin-bottom:1.25rem">
+  <div class="card-title-row">
+    <h2>Upload Delivery File</h2>
+    {% if upload_info and upload_info.total > 0 %}
+    <span class="text-sm text-muted">
+      Last upload: <strong>{{ upload_info.uploaded_at[:16] | replace("T"," ") }}</strong>
+      &nbsp;·&nbsp; {{ upload_info.total }} rows
+    </span>
+    {% endif %}
+  </div>
+
+  {% if error %}
+  <div class="alert alert-error" style="margin-bottom:1rem">{{ error }}</div>
+  {% endif %}
+  {% if success %}
+  <div class="alert alert-success" style="margin-bottom:1rem">{{ success }}</div>
+  {% endif %}
+
+  <form method="post" action="/logistics/stock-delivery/upload" enctype="multipart/form-data">
+    <div style="display:flex;align-items:flex-end;gap:1rem;flex-wrap:wrap">
+      <div class="form-group" style="flex:1;min-width:260px;margin:0">
+        <label>Select Excel (.xlsx) or CSV file</label>
+        <input type="file" name="file" accept=".xlsx,.csv" required
+               style="padding:.45rem .6rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem;background:#fff;width:100%"/>
+      </div>
+      <button type="submit" class="btn btn-primary" style="white-space:nowrap">⬆ Upload & Replace</button>
+    </div>
+    <p class="text-sm text-muted" style="margin-top:.6rem">
+      ⚠️ The upload <strong>replaces</strong> all existing delivery data. Accepted columns:
+      <em>no, Mth, Order/Rtn No, STORE, STORENAME, Sacoor Order Drop, Picking Complete,
+      Cargo Readiness, Delivery DATE, Delivery Day, Delivery Time, Order Type, Qty, VOL, NCG, Total Ctn, Total Railings</em>
+    </p>
+  </form>
+</div>
+
+<!-- Filter + table -->
+{% if deliveries %}
+<div class="card" style="padding:0;overflow-x:auto">
+  <div style="padding:.75rem 1rem;border-bottom:1px solid var(--grey-bd);display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
+    <input type="text" id="del-search" placeholder="🔍 Search store, order no…"
+           oninput="filterDeliveries()"
+           style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.83rem;min-width:220px"/>
+    <select id="del-store" onchange="filterDeliveries()"
+            style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.83rem">
+      <option value="">All stores</option>
+      {% for code in store_codes %}
+      <option value="{{ code | lower }}">{{ code }}</option>
+      {% endfor %}
+    </select>
+    <span id="del-count" class="text-sm text-muted"></span>
+  </div>
+  <table class="table" id="del-table" style="min-width:1100px;width:100%">
+    <thead>
+      <tr>
+        <th>Order/Rtn No</th>
+        <th>Store</th>
+        <th>Store Name</th>
+        <th style="background:#1a5c1a">Delivery Date</th>
+        <th>Day</th>
+        <th>Time</th>
+        <th>Type</th>
+        <th style="text-align:center">Qty</th>
+        <th style="text-align:center">Ctn</th>
+        <th style="text-align:center">Rln</th>
+        <th>Order Drop</th>
+        <th>Cargo Ready</th>
+      </tr>
+    </thead>
+    <tbody id="del-body">
+      {% for d in deliveries %}
+      <tr data-search="{{ (d.store_code ~ ' ' ~ d.store_name_excel ~ ' ' ~ d.order_rtn_no) | lower }}">
+        <td><strong>{{ d.order_rtn_no }}</strong></td>
+        <td><span class="badge" style="background:#f0f4ff;color:#1a3a8f;border:1px solid #c7d6ff">{{ d.store_code }}</span></td>
+        <td class="text-sm">{{ d.store_name_excel }}</td>
+        <td style="white-space:nowrap;font-weight:600;color:#1a5c1a">{{ d.delivery_date }}</td>
+        <td class="text-sm">{{ d.delivery_day }}</td>
+        <td class="text-sm" style="white-space:nowrap">{{ d.delivery_time }}</td>
+        <td class="text-sm">{{ d.order_type }}</td>
+        <td style="text-align:center">{{ d.qty }}</td>
+        <td style="text-align:center">{{ d.total_ctn }}</td>
+        <td style="text-align:center">{{ d.total_rln }}</td>
+        <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.order_drop_date }}</td>
+        <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.cargo_readiness }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="empty-state"><p>No delivery data yet. Upload an Excel file above.</p></div>
+{% endif %}
+
+<script>
+function filterDeliveries() {
+  const search = document.getElementById('del-search').value.toLowerCase();
+  const store  = document.getElementById('del-store').value.toLowerCase();
+  const rows   = document.querySelectorAll('#del-body tr');
+  let n = 0;
+  rows.forEach(r => {
+    const text = r.dataset.search || '';
+    const show = (!search || text.includes(search)) && (!store || text.startsWith(store));
+    r.style.display = show ? '' : 'none';
+    if (show) n++;
+  });
+  document.getElementById('del-count').textContent = n + ' row' + (n !== 1 ? 's' : '');
+}
+filterDeliveries();
+</script>
+{% endblock %}

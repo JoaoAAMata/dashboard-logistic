@@ -69,17 +69,24 @@
   </div>
 
   <!-- ── 4. STOCK DELIVERY ─────────────────────── stores + admin only ─────── -->
-  <div class="hub-card hub-card-soon">
-    <div class="hub-badge-soon">Coming Soon</div>
-    <div class="hub-icon hub-icon-muted">🚛</div>
+  <div class="hub-card hub-card-active">
+    <div class="hub-icon">🚛</div>
     <div class="hub-body">
       <h2 class="hub-title">Stock Delivery</h2>
       <p class="hub-desc">
-        Track incoming stock deliveries from the warehouse, confirm receipt and report any discrepancies.
+        {% if session.is_admin %}
+          Upload and manage the daily delivery schedule visible to all stores.
+        {% else %}
+          View your incoming stock delivery schedule with dates, carton counts and delivery times.
+        {% endif %}
       </p>
     </div>
     <div class="hub-footer">
-      <button class="btn btn-secondary" disabled>Not Available Yet</button>
+      {% if session.is_admin %}
+        <a href="/logistics/stock-delivery" class="btn btn-primary">Manage Deliveries →</a>
+      {% else %}
+        <a href="/stock-delivery" class="btn btn-primary">View Schedule →</a>
+      {% endif %}
     </div>
   </div>
   {% endif %}

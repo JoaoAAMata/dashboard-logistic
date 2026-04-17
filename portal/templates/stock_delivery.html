@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Stock Delivery — {{ session.store_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>🚛 Stock Delivery</h1>
+    <p class="text-muted">{{ session.store_name }}</p>
+  </div>
+  <a href="/home" class="btn btn-secondary">← Home</a>
+</div>
+
+{% if not deliveries %}
+  {% if upload_info %}
+  <div class="alert" style="background:#fff8e1;border-left:4px solid #f59e0b;color:#78350f">
+    📋 No deliveries scheduled for <strong>{{ session.store_code }}</strong> in the current upload.
+    If you believe this is incorrect, please contact Logistics.
+  </div>
+  {% else %}
+  <div class="alert" style="background:#f0f4ff;border-left:4px solid #1a3a8f;color:#1a3a8f">
+    📋 No delivery schedule has been uploaded yet. Check back later.
+  </div>
+  {% endif %}
+{% else %}
+
+<!-- Summary strip -->
+<div class="del-summary">
+  <div class="del-sum-item">
+    <span class="del-sum-val">{{ deliveries | length }}</span>
+    <span class="del-sum-lbl">Total Shipments</span>
+  </div>
+  <div class="del-sum-item">
+    <span class="del-sum-val">{{ deliveries | sum(attribute='total_ctn_int') }}</span>
+    <span class="del-sum-lbl">Total Cartons</span>
+  </div>
+  <div class="del-sum-item">
+    <span class="del-sum-val">{{ upcoming_count }}</span>
+    <span class="del-sum-lbl">Upcoming</span>
+  </div>
+  {% if upload_info %}
+  <div class="del-sum-item del-sum-updated">
+    <span class="del-sum-lbl">Schedule updated</span>
+    <span class="del-sum-val" style="font-size:.95rem">{{ upload_info.uploaded_at[:10] }}</span>
+  </div>
+  {% endif %}
+</div>
+
+<div class="card" style="padding:0;overflow-x:auto;margin-top:1.25rem">
+  <table class="table" style="min-width:780px;width:100%">
+    <thead>
+      <tr>
+        <th>Order / Rtn No</th>
+        <th style="background:#1a5c1a">Delivery Date</th>
+        <th>Day</th>
+        <th>Delivery Time</th>
+        <th>Type</th>
+        <th style="text-align:center">Qty</th>
+        <th style="text-align:center">Total Ctn</th>
+        <th style="text-align:center">Total Rln</th>
+        <th>Cargo Ready</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for d in deliveries %}
+      <tr class="{% if d.is_past %}del-past{% elif d.is_today %}del-today{% endif %}">
+        <td><strong>{{ d.order_rtn_no }}</strong></td>
+        <td style="white-space:nowrap;font-weight:700;color:{% if d.is_today %}#1a5c1a{% elif d.is_past %}var(--muted){% else %}#1a5c1a{% endif %}">
+          {{ d.delivery_date }}
+          {% if d.is_today %}<span class="del-badge-today">Today</span>{% endif %}
+        </td>
+        <td class="text-sm">{{ d.delivery_day }}</td>
+        <td class="text-sm" style="white-space:nowrap">{{ d.delivery_time }}</td>
+        <td class="text-sm">{{ d.order_type }}</td>
+        <td style="text-align:center">{{ d.qty }}</td>
+        <td style="text-align:center;font-weight:600">{{ d.total_ctn }}</td>
+        <td style="text-align:center">{{ d.total_rln }}</td>
+        <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.cargo_readiness }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<style>
+/* Summary strip */
+.del-summary {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.del-sum-item {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  min-width: 130px;
+  border-top: 3px solid var(--dark);
+}
+.del-sum-updated { border-top-color: #1976d2; }
+.del-sum-val { font-size: 1.6rem; font-weight: 800; color: var(--dark); line-height: 1; }
+.del-sum-lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+
+/* Row states */
+.del-past td { color: var(--muted); }
+.del-today   { background: #f0fdf4; }
+
+/* Today badge */
+.del-badge-today {
+  display: inline-block;
+  background: #1a5c1a;
+  color: #fff;
+  font-size: .62rem;
+  font-weight: 700;
+  padding: .1rem .4rem;
+  border-radius: 99px;
+  margin-left: .35rem;
+  vertical-align: middle;
+  letter-spacing: .05em;
+}
+</style>
+{% endblock %}

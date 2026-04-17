@@ -267,6 +267,32 @@ def init_db():
                 (store_code, store_name, username, hash_pin(DEFAULT_PIN), address, city, country)
             )
 
+    # ── Deliveries table ──────────────────────────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS deliveries (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            row_no              TEXT,
+            month               TEXT,
+            order_rtn_no        TEXT,
+            store_code          TEXT,
+            store_name_excel    TEXT,
+            order_drop_date     TEXT,
+            picking_complete    TEXT,
+            cargo_readiness     TEXT,
+            delivery_date       TEXT,
+            delivery_day        TEXT,
+            delivery_time       TEXT,
+            order_type          TEXT,
+            qty                 TEXT,
+            vol                 TEXT,
+            ncg                 TEXT,
+            total_ctn           TEXT,
+            total_rln           TEXT,
+            uploaded_at         TEXT,
+            batch_id            TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -570,3 +596,72 @@ def get_archived_transfers(store_id: int):
     """, (store_id, store_id)).fetchall()
     conn.close()
     return [dict(r) for r in rows]
+
+
+# ── Deliveries ────────────────────────────────────────────────────────────────
+
+def upload_deliveries(rows: list, batch_id: str):
+    """Replace all existing deliveries with new upload."""
+    conn = get_conn()
+    conn.execute("DELETE FROM deliveries")
+    now = datetime.utcnow().isoformat()
+    for r in rows:
+        conn.execute("""
+            INSERT INTO deliveries
+              (row_no, month, order_rtn_no, store_code, store_name_excel,
+               order_drop_date, picking_complete, cargo_readiness,
+               delivery_date, delivery_day, delivery_time, order_type,
+               qty, vol, ncg, total_ctn, total_rln, uploaded_at, batch_id)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (
+            str(r.get("no", "")),
+            str(r.get("mth", "")),
+            str(r.get("order_rtn_no", "")),
+            str(r.get("store_code", "")).strip().upper(),
+            str(r.get("store_name_excel", "")),
+            str(r.get("order_drop_date", "")),
+            str(r.get("picking_complete", "")),
+            str(r.get("cargo_readiness", "")),
+            str(r.get("delivery_date", "")),
+            str(r.get("delivery_day", "")),
+            str(r.get("delivery_time", "")),
+            str(r.get("order_type", "")),
+            str(r.get("qty", "")),
+            str(r.get("vol", "")),
+            str(r.get("ncg", "")),
+            str(r.get("total_ctn", "")),
+            str(r.get("total_rln", "")),
+            now,
+            batch_id,
+        ))
+    conn.commit()
+    conn.close()
+
+
+def get_deliveries_for_store(store_code: str):
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM deliveries WHERE store_code = ? ORDER BY delivery_date ASC",
+        (store_code.strip().upper(),)
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_all_deliveries():
+    conn = get_conn()
+    rows = conn.execute(
+        "SELECT * FROM deliveries ORDER BY delivery_date ASC, store_code ASC"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
+def get_delivery_upload_info():
+    """Returns last upload timestamp and total row count."""
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT uploaded_at, batch_id, COUNT(*) as total FROM deliveries ORDER BY uploaded_at DESC LIMIT 1"
+    ).fetchone()
+    conn.close()
+    return dict(row) if row else None

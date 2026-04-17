@@ -532,6 +532,195 @@ async def edit_transfer(request: Request, tid: int):
     return RedirectResponse(f"/logistics/transfer/{tid}?edited=1", status_code=302)
 
 
+# ── Stock Delivery ────────────────────────────────────────────────────────────
+
+def _parse_date_str(val) -> str:
+    """Convert Excel date object or string to YYYY-MM-DD string."""
+    if val is None:
+        return ""
+    from datetime import date as _date, datetime as _datetime
+    if isinstance(val, (_date, _datetime)):
+        return val.strftime("%Y-%m-%d")
+    s = str(val).strip()
+    # try common formats
+    for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%m/%d/%Y"):
+        try:
+            from datetime import datetime as _dt
+            return _dt.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return s  # return as-is if can't parse
+
+
+def _col(headers: list, *names) -> int | None:
+    """Find column index (0-based) by trying several name variants."""
+    lower_headers = [h.lower().strip() for h in headers]
+    for name in names:
+        try:
+            return lower_headers.index(name.lower().strip())
+        except ValueError:
+            pass
+    return None
+
+
+def _v(row, idx):
+    """Safely get a cell value by index, return empty string if out of range."""
+    if idx is None or idx >= len(row):
+        return ""
+    val = row[idx]
+    return "" if val is None else str(val).strip()
+
+
+@app.get("/stock-delivery", response_class=HTMLResponse)
+async def store_stock_delivery(request: Request):
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    raw = database.get_deliveries_for_store(s["store_code"])
+    upcoming = 0
+    deliveries = []
+    for d in raw:
+        dd = d.get("delivery_date", "")
+        d["is_today"] = dd == today
+        d["is_past"]  = dd < today if dd else False
+        if not d["is_past"]:
+            upcoming += 1
+        try:
+            d["total_ctn_int"] = int(d.get("total_ctn") or 0)
+        except ValueError:
+            d["total_ctn_int"] = 0
+        deliveries.append(d)
+    upload_info = database.get_delivery_upload_info()
+    return templates.TemplateResponse("stock_delivery.html", {
+        "request": request, "session": s,
+        "deliveries": deliveries,
+        "upcoming_count": upcoming,
+        "upload_info": upload_info,
+    })
+
+
+@app.get("/logistics/stock-delivery", response_class=HTMLResponse)
+async def logistics_stock_delivery(request: Request, error: str = "", success: str = ""):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    deliveries  = database.get_all_deliveries()
+    upload_info = database.get_delivery_upload_info()
+    store_codes = sorted({d["store_code"] for d in deliveries if d["store_code"]})
+    return templates.TemplateResponse("logistics_stock_delivery.html", {
+        "request": request, "session": s,
+        "deliveries": deliveries,
+        "upload_info": upload_info,
+        "store_codes": store_codes,
+        "error": error, "success": success,
+    })
+
+
+@app.post("/logistics/stock-delivery/upload")
+async def upload_stock_delivery(request: Request, file: UploadFile = File(...)):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+
+    rows = []
+    try:
+        content = await file.read()
+
+        if ext == ".xlsx":
+            import openpyxl, io as _io
+            wb = openpyxl.load_workbook(_io.BytesIO(content), data_only=True)
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+            if not all_rows:
+                raise ValueError("Empty file")
+            headers = [str(h or "").strip() for h in all_rows[0]]
+            data_rows = all_rows[1:]
+
+        elif ext == ".csv":
+            import csv as _csv, io as _io
+            text = content.decode("utf-8-sig")
+            reader = list(_csv.reader(_io.StringIO(text)))
+            if not reader:
+                raise ValueError("Empty file")
+            headers = [h.strip() for h in reader[0]]
+            data_rows = reader[1:]
+        else:
+            raise ValueError("Only .xlsx or .csv files are accepted.")
+
+        # Map header names → column indices
+        ci = {
+            "no":               _col(headers, "no"),
+            "mth":              _col(headers, "mth", "mth (auto)", "month"),
+            "order_rtn_no":     _col(headers, "order/rtn no", "order rtn no", "order no"),
+            "store_code":       _col(headers, "store"),
+            "store_name_excel": _col(headers, "storename", "store name"),
+            "order_drop_date":  _col(headers, "sacoor order drop", "order drop"),
+            "picking_complete": _col(headers, "picking complete", "picking completed"),
+            "cargo_readiness":  _col(headers, "cargo readiness", "cargo ready"),
+            "delivery_date":    _col(headers, "delivery date"),
+            "delivery_day":     _col(headers, "delivery day"),
+            "delivery_time":    _col(headers, "delivery time"),
+            "order_type":       _col(headers, "order type"),
+            "qty":              _col(headers, "qty", "quantity"),
+            "vol":              _col(headers, "vol", "volume"),
+            "ncg":              _col(headers, "ncg"),
+            "total_ctn":        _col(headers, "total ctn", "total cartons"),
+            "total_rln":        _col(headers, "total railings", "total rln", "total railing"),
+        }
+
+        for raw in data_rows:
+            raw = list(raw)
+            # Skip completely empty rows
+            if not any(v for v in raw if v is not None and str(v).strip()):
+                continue
+            rows.append({
+                "no":               _v(raw, ci["no"]),
+                "mth":              _v(raw, ci["mth"]),
+                "order_rtn_no":     _v(raw, ci["order_rtn_no"]),
+                "store_code":       _v(raw, ci["store_code"]),
+                "store_name_excel": _v(raw, ci["store_name_excel"]),
+                "order_drop_date":  _parse_date_str(raw[ci["order_drop_date"]] if ci["order_drop_date"] is not None and ci["order_drop_date"] < len(raw) else ""),
+                "picking_complete": _parse_date_str(raw[ci["picking_complete"]] if ci["picking_complete"] is not None and ci["picking_complete"] < len(raw) else ""),
+                "cargo_readiness":  _parse_date_str(raw[ci["cargo_readiness"]] if ci["cargo_readiness"] is not None and ci["cargo_readiness"] < len(raw) else ""),
+                "delivery_date":    _parse_date_str(raw[ci["delivery_date"]] if ci["delivery_date"] is not None and ci["delivery_date"] < len(raw) else ""),
+                "delivery_day":     _v(raw, ci["delivery_day"]),
+                "delivery_time":    _v(raw, ci["delivery_time"]),
+                "order_type":       _v(raw, ci["order_type"]),
+                "qty":              _v(raw, ci["qty"]),
+                "vol":              _v(raw, ci["vol"]),
+                "ncg":              _v(raw, ci["ncg"]),
+                "total_ctn":        _v(raw, ci["total_ctn"]),
+                "total_rln":        _v(raw, ci["total_rln"]),
+            })
+
+        import uuid as _uuid
+        batch_id = _uuid.uuid4().hex[:8]
+        database.upload_deliveries(rows, batch_id)
+
+    except Exception as exc:
+        deliveries  = database.get_all_deliveries()
+        upload_info = database.get_delivery_upload_info()
+        store_codes = sorted({d["store_code"] for d in deliveries if d["store_code"]})
+        return templates.TemplateResponse("logistics_stock_delivery.html", {
+            "request": request, "session": s,
+            "deliveries": deliveries,
+            "upload_info": upload_info,
+            "store_codes": store_codes,
+            "error": f"Upload failed: {exc}",
+            "success": "",
+        })
+
+    return RedirectResponse(
+        f"/logistics/stock-delivery?success=Uploaded+{len(rows)}+rows+successfully",
+        status_code=302
+    )
+
+
 # ── PDF download ──────────────────────────────────────────────────────────────
 
 @app.get("/transfer/{tid}/pdf")
