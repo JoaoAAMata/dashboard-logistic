@@ -629,6 +629,9 @@ async def logistics_stock_delivery(request: Request, error: str = "", success: s
     s = get_session(request)
     if not s or not s["is_admin"]:
         return RedirectResponse("/login")
+    from datetime import date as _date, timedelta as _td
+    today      = _date.today()
+    week_start = (today - _td(days=today.weekday())).isoformat()
     deliveries  = database.get_all_deliveries()
     upload_info = database.get_delivery_upload_info()
     store_codes = sorted({d["store_code"] for d in deliveries if d["store_code"]})
@@ -645,6 +648,8 @@ async def logistics_stock_delivery(request: Request, error: str = "", success: s
         "upload_info": upload_info,
         "store_codes": store_codes,
         "unmatched": unmatched,
+        "week_start": week_start,
+        "today": today.isoformat(),
         "error": error, "success": success,
     })
 

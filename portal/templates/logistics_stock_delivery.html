@@ -60,23 +60,48 @@
   </form>
 </div>
 
-<!-- Filter + table -->
 {% if deliveries %}
-<div class="card" style="padding:0;overflow-x:auto">
-  <div style="padding:.75rem 1rem;border-bottom:1px solid var(--grey-bd);display:flex;gap:.75rem;align-items:center;flex-wrap:wrap">
-    <input type="text" id="del-search" placeholder="🔍 Search store, order no…"
-           oninput="filterDeliveries()"
-           style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.83rem;min-width:220px"/>
-    <select id="del-store" onchange="filterDeliveries()"
-            style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.83rem">
-      <option value="">All stores</option>
-      {% for code in store_codes %}
-      <option value="{{ code | lower }}">{{ code }}</option>
-      {% endfor %}
-    </select>
-    <span id="del-count" class="text-sm text-muted"></span>
+<!-- Filter bar -->
+<div class="card" style="padding:.85rem 1.1rem;margin-bottom:1rem">
+  <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:.25rem;flex:2;min-width:200px">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">🔍 Shipment / Store</label>
+      <input type="text" id="f-search" placeholder="Search order no, store code or name…" oninput="applyFilters()"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.25rem;min-width:160px">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">Store</label>
+      <select id="f-store" onchange="applyFilters()"
+              style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem">
+        <option value="">All stores</option>
+        {% for code in store_codes %}
+        <option value="{{ code | lower }}">{{ code }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.25rem">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">From</label>
+      <input type="date" id="f-from" value="{{ week_start }}" onchange="applyFilters()"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.25rem">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">To</label>
+      <input type="date" id="f-to" onchange="applyFilters()"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn-sm btn-secondary" onclick="setWeek(0)">This week</button>
+      <button class="btn btn-sm btn-secondary" onclick="setWeek(1)">Next week</button>
+      <button class="btn btn-sm btn-secondary" onclick="clearFilters()">All</button>
+    </div>
   </div>
-  <table class="table" id="del-table" style="min-width:1100px;width:100%">
+  <div style="margin-top:.5rem;font-size:.8rem;color:var(--muted)">
+    Showing <strong id="del-count">0</strong> of {{ deliveries|length }} rows
+  </div>
+</div>
+
+<div class="card" style="padding:0;overflow-x:auto">
+  <table class="table" style="min-width:1050px;width:100%">
     <thead>
       <tr>
         <th>Order/Rtn No</th>
@@ -87,6 +112,7 @@
         <th>Time</th>
         <th>Type</th>
         <th style="text-align:center">Qty</th>
+        <th style="text-align:center">Vol</th>
         <th style="text-align:center">Ctn</th>
         <th style="text-align:center">Rln</th>
         <th>Order Drop</th>
@@ -95,7 +121,9 @@
     </thead>
     <tbody id="del-body">
       {% for d in deliveries %}
-      <tr data-search="{{ (d.store_code ~ ' ' ~ d.store_name_excel ~ ' ' ~ d.order_rtn_no) | lower }}">
+      <tr data-search="{{ (d.store_code ~ ' ' ~ d.store_name_excel ~ ' ' ~ d.order_rtn_no) | lower }}"
+          data-store="{{ d.store_code | lower }}"
+          data-date="{{ d.delivery_date }}">
         <td><strong>{{ d.order_rtn_no }}</strong></td>
         <td><span class="badge" style="background:#f0f4ff;color:#1a3a8f;border:1px solid #c7d6ff">{{ d.store_code }}</span></td>
         <td class="text-sm">{{ d.store_name_excel }}</td>
@@ -104,7 +132,8 @@
         <td class="text-sm" style="white-space:nowrap">{{ d.delivery_time }}</td>
         <td class="text-sm">{{ d.order_type }}</td>
         <td style="text-align:center">{{ d.qty }}</td>
-        <td style="text-align:center">{{ d.total_ctn }}</td>
+        <td style="text-align:center">{{ d.vol }}</td>
+        <td style="text-align:center;font-weight:600">{{ d.total_ctn }}</td>
         <td style="text-align:center">{{ d.total_rln }}</td>
         <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.order_drop_date }}</td>
         <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.cargo_readiness }}</td>
@@ -112,25 +141,65 @@
       {% endfor %}
     </tbody>
   </table>
+  <div id="empty-msg" style="display:none;text-align:center;padding:2rem;color:var(--muted)">
+    No deliveries match the current filter.
+  </div>
 </div>
 {% else %}
 <div class="empty-state"><p>No delivery data yet. Upload an Excel file above.</p></div>
 {% endif %}
 
 <script>
-function filterDeliveries() {
-  const search = document.getElementById('del-search').value.toLowerCase();
-  const store  = document.getElementById('del-store').value.toLowerCase();
+const TODAY      = '{{ today }}';
+const WEEK_START = '{{ week_start }}';
+
+function weekRange(offset) {
+  const d   = new Date(TODAY);
+  const day = d.getDay() === 0 ? 6 : d.getDay() - 1;
+  const mon = new Date(d); mon.setDate(d.getDate() - day + offset * 7);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return [mon.toISOString().slice(0,10), sun.toISOString().slice(0,10)];
+}
+
+function setWeek(offset) {
+  const [from, to] = weekRange(offset);
+  document.getElementById('f-from').value   = from;
+  document.getElementById('f-to').value     = to;
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-store').value  = '';
+  applyFilters();
+}
+
+function clearFilters() {
+  document.getElementById('f-from').value   = '';
+  document.getElementById('f-to').value     = '';
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-store').value  = '';
+  applyFilters();
+}
+
+function applyFilters() {
+  const search = document.getElementById('f-search').value.toLowerCase().trim();
+  const store  = document.getElementById('f-store').value.toLowerCase();
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
   const rows   = document.querySelectorAll('#del-body tr');
   let n = 0;
   rows.forEach(r => {
-    const text = r.dataset.search || '';
-    const show = (!search || text.includes(search)) && (!store || text.startsWith(store));
-    r.style.display = show ? '' : 'none';
-    if (show) n++;
+    const ok = (!search || (r.dataset.search || '').includes(search))
+            && (!store  || (r.dataset.store  || '') === store)
+            && (!from   || (r.dataset.date   || '') >= from)
+            && (!to     || (r.dataset.date   || '') <= to);
+    r.style.display = ok ? '' : 'none';
+    if (ok) n++;
   });
-  document.getElementById('del-count').textContent = n + ' row' + (n !== 1 ? 's' : '');
+  document.getElementById('del-count').textContent = n;
+  document.getElementById('empty-msg').style.display = n === 0 ? '' : 'none';
 }
-filterDeliveries();
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-from').value = WEEK_START;
+  applyFilters();
+});
 </script>
 {% endblock %}
