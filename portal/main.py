@@ -609,10 +609,15 @@ async def logistics_stock_delivery(request: Request, error: str = "", success: s
     deliveries  = database.get_all_deliveries()
     upload_info = database.get_delivery_upload_info()
     store_codes = sorted({d["store_code"] for d in deliveries if d["store_code"]})
-    # Find codes that don't match any system store
+    # Codes that exist in the Excel but are not real stores — always ignore
+    IGNORED_CODES = {"ONLINE", "UNIF", "MEMP", "MIOI", "MJOBBLUE", "ONLINE-SEA"}
+    # Find codes that don't match any system store (excluding ignored ones)
     all_stores  = database.get_all_stores(exclude_admin=False)
     sys_codes   = {st["store_code"].upper() for st in all_stores}
-    unmatched   = sorted({c for c in store_codes if c.upper() not in sys_codes})
+    unmatched   = sorted({
+        c for c in store_codes
+        if c.upper() not in sys_codes and c.upper() not in IGNORED_CODES
+    })
     return templates.TemplateResponse("logistics_stock_delivery.html", {
         "request": request, "session": s,
         "deliveries": deliveries,
