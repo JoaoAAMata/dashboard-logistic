@@ -675,7 +675,8 @@ async def inventory_results(request: Request, success: str = "", error: str = ""
         page_icon="📋",
         success=success, error=error,
     )
-    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx})
+    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx,
+                                                              "dashboard_url": "/static/dashboards/stock_count.html"})
 
 
 @app.post("/inventory-results/upload")
@@ -715,6 +716,20 @@ async def inventory_download(request: Request, month: str):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="StockCount_2026_{month_name}.xlsx"'},
     )
+
+
+@app.get("/inventory-results/available-months")
+async def inventory_available_months(request: Request):
+    from fastapi.responses import JSONResponse
+    s = get_session(request)
+    if not s:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    months = []
+    for val, label in _MONTHS:
+        path = os.path.join(_DATA_DIR, f"stock_count_2026_{val}.xlsx")
+        if os.path.exists(path):
+            months.append({"value": val, "label": f"{label} 2026"})
+    return JSONResponse(months)
 
 
 # ── NOOS Sales 2026 ───────────────────────────────────────────────────────────

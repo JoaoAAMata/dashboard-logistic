@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stock Count Monthly 2026</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{background:#fff;border-bottom:1px solid rgba(0,0,0,.08);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.back-btn{font-size:.82rem;font-weight:600;color:#185FA5;text-decoration:none;padding:.3rem .7rem;border:1px solid #c7d6ff;border-radius:6px;background:#f0f4ff;white-space:nowrap}
+.back-btn:hover{background:#e0eaff}
+.topbar-title{font-size:15px;font-weight:700;color:#1a1a18}
+.topbar-sub{font-size:11px;color:#9a9a94;margin-top:1px}
+
+/* ── Brand tabs ── */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab-btn{font-size:.75rem;font-weight:600;padding:.3rem .75rem;border-radius:99px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer;transition:all .15s}
+.tab-btn:hover{background:#f0f4ff;border-color:#c7d6ff;color:#185FA5}
+.tab-active{background:#1a1a18!important;border-color:#1a1a18!important;color:#fff!important}
+
+/* ── Main ── */
+.main{max-width:1200px;margin:0 auto;padding:24px 20px}
+
+/* ── Month chips ── */
+.section-label{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9a9a94;margin-bottom:8px}
+.month-chip{font-size:.78rem;font-weight:600;padding:.3rem .85rem;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
+.month-chip:hover{border-color:#c7d6ff;color:#185FA5}
+.chip-active{background:#1a3a8f!important;border-color:#1a3a8f!important;color:#fff!important}
+
+/* ── Card ── */
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+.card-title{font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a9a94;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #f0f0ee}
+
+/* ── Table ── */
+.data-table{width:100%;border-collapse:collapse;font-size:.83rem}
+.data-table th{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9a94;padding:.55rem .85rem;border-bottom:2px solid #f0f0ee;text-align:right;white-space:nowrap}
+.data-table th:first-child,.data-table th:nth-child(2){text-align:left}
+.data-table td{padding:.5rem .85rem;border-bottom:1px solid #f5f5f3;text-align:right;white-space:nowrap;color:#1a1a18}
+.data-table td:first-child,.data-table td:nth-child(2){text-align:left}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tbody tr:hover{background:#fafafa}
+
+/* ── Special rows ── */
+.brand-header td{background:#f5f5f3;font-size:.7rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#9a9a94;padding:.4rem .85rem;border-bottom:1px solid #ebebea}
+.subtotal-row td{background:#f9f9f8;font-weight:700;color:#1a1a18;border-top:1px solid #ebebea;border-bottom:2px solid #ebebea}
+.total-row td{font-weight:800;color:#1a1a18;border-top:2px solid #1a1a18;background:#fafaf8}
+
+/* ── Numbers ── */
+.neg{color:#c0392b}
+.pos{color:#1a5c1a}
+
+/* ── Month header col ── */
+.col-month{background:#f0f6ff;color:#185FA5!important}
+
+/* ── States ── */
+.empty-state{text-align:center;padding:3rem;color:#9a9a94;font-size:.9rem}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #e5e7eb;border-top-color:#1a1a18;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:700px){
+  .topbar{flex-direction:column;align-items:flex-start}
+  .data-table{font-size:.75rem}
+  .data-table th,.data-table td{padding:.4rem .5rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="/inventory-results" class="back-btn">← Back</a>
+    <div>
+      <div class="topbar-title">Stock Count Monthly 2026</div>
+      <div class="topbar-sub">Malaysia · Fashion Retail</div>
+    </div>
+  </div>
+  <div class="tabs" id="brand-tabs">
+    <button class="tab-btn tab-active" data-brand="all">All</button>
+    <button class="tab-btn" data-brand="Boutique">Boutique</button>
+    <button class="tab-btn" data-brand="One">One</button>
+    <button class="tab-btn" data-brand="Blue">Blue</button>
+    <button class="tab-btn" data-brand="Club">Club</button>
+    <button class="tab-btn" data-brand="Outlet">Outlet</button>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- Loading -->
+  <div id="state-loading" class="empty-state">
+    <span class="spinner"></span> Loading available months…
+  </div>
+
+  <!-- No months -->
+  <div id="state-empty" class="empty-state" style="display:none">
+    No stock count files uploaded yet.<br>
+    <a href="/inventory-results" style="color:#185FA5;font-weight:600">Go to Inventory Results to upload files →</a>
+  </div>
+
+  <!-- Month selector -->
+  <div id="months-section" style="display:none;margin-bottom:1.5rem">
+    <div class="section-label">Loaded Months — click to load/unload</div>
+    <div id="month-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+    <div id="select-hint" style="margin-top:8px;font-size:.75rem;color:#9a9a94">Select a month above to view data</div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" style="display:none">
+
+    <!-- BY BRAND -->
+    <div class="card">
+      <div class="card-title">By Brand</div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="text-align:left">Brand</th>
+              <th colspan="2" class="col-month" id="th-month-label">—</th>
+              <th colspan="2">YTD 2026</th>
+            </tr>
+            <tr>
+              <th class="col-month">Cost</th>
+              <th class="col-month">Qty</th>
+              <th>Cost</th>
+              <th>Qty</th>
+            </tr>
+          </thead>
+          <tbody id="brand-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BY STORE -->
+    <div class="card">
+      <div class="card-title">By Store</div>
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="text-align:left">WH</th>
+              <th rowspan="2" style="text-align:left">Store</th>
+              <th colspan="2" class="col-month" id="th-month-label2">—</th>
+              <th colspan="2">YTD 2026</th>
+            </tr>
+            <tr>
+              <th class="col-month">Cost</th>
+              <th class="col-month">Qty</th>
+              <th>Cost</th>
+              <th>Qty</th>
+            </tr>
+          </thead>
+          <tbody id="store-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── WH mappings ────────────────────────────────────────────────────────────────
+const WH_BRAND = {
+  '9601':'Boutique','9602':'Boutique','9605':'Boutique','9608':'Boutique',
+  '9613':'Boutique','9631':'Boutique','9633':'Boutique','9636':'Boutique',
+  '9641':'Boutique','9654':'Boutique','9656':'Boutique',
+  '9604':'Outlet','9607':'Outlet','9609':'Outlet','9610':'Outlet',
+  '9611':'Outlet','9619':'Outlet','9645':'Outlet','9657':'Outlet',
+  '9621':'Blue','9627':'Blue','9628':'Blue','9632':'Blue','9638':'Blue','9639':'Blue',
+  '9644':'One',
+  '9630':'Club',
+  '8301':'Warehouse',
+};
+const WH_STORE = {
+  '9601':'Pavilion','9602':'KLCC','9605':'Bangsar','9608':'Gardens',
+  '9613':'Gurney','9631':'IOI','9633':'Lalaport','9636':'Imago',
+  '9641':'TRX','9654':'Queensbay','9656':'Sunway',
+  '9604':'Johor','9607':'Mitsui','9609':'Malaca','9610':'Design Village',
+  '9611':'Genting','9619':'Mitsui Woman','9645':'Mitsui Classic','9657':'Johor Classic',
+  '9621':'Pavilion Blue','9627':'Johor Blue','9628':'Mitsui Blue',
+  '9632':'Lalaport Blue','9638':'Genting Blue','9639':'1Utama Blue',
+  '9644':'Lalaport One',
+  '9630':'Empire Club',
+  '8301':'Warehouse',
+};
+const BRAND_ORDER = ['Boutique','Outlet','Blue','One','Club','Warehouse'];
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let monthData   = {};   // { "01": [{wh,store,brand,cost,qty},...] }
+let loadedOrder = [];   // ["01","03",...] — order months were loaded
+let activeMonth = null; // currently highlighted month for MONTHLY column
+let activeBrand = 'all';
+
+// ── Formatting ─────────────────────────────────────────────────────────────────
+function fmtCost(n) {
+  if (n === null || n === undefined) return '—';
+  const num = typeof n === 'number' ? n : parseFloat(n);
+  if (isNaN(num)) return '—';
+  const abs = Math.abs(num).toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+  if (num < 0) return `<span class="neg">(${abs})</span>`;
+  if (num > 0) return `<span class="pos">${abs}</span>`;
+  return abs;
+}
+function fmtQty(n) {
+  if (n === null || n === undefined) return '—';
+  const num = typeof n === 'number' ? n : parseInt(n);
+  if (isNaN(num)) return '—';
+  const abs = Math.abs(num).toLocaleString();
+  if (num < 0) return `<span class="neg">(${abs})</span>`;
+  if (num > 0) return `<span class="pos">${abs}</span>`;
+  return '0';
+}
+
+// ── Parse uploaded Excel ───────────────────────────────────────────────────────
+function parseNum(v) {
+  if (v === null || v === undefined || v === '') return 0;
+  const s = String(v).trim();
+  // accounting format: (1,234.56) → -1234.56
+  if (/^\([\d,]+\.?\d*\)$/.test(s)) return -parseFloat(s.replace(/[(),\s]/g,''));
+  return parseFloat(s.replace(/[,\s]/g,'')) || 0;
+}
+
+function colFind(row, ...names) {
+  for (const n of names) {
+    if (row[n] !== undefined && row[n] !== '') return row[n];
+  }
+  return '';
+}
+
+function parseRows(ab) {
+  const wb  = XLSX.read(ab, {type:'array'});
+  const ws  = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+  const out = [];
+  for (const r of raw) {
+    const wh = String(colFind(r,'WH','wh','Location','LOCATION','Store Code','STORE CODE','StoreCode')).trim();
+    if (!wh || wh === '0') continue;
+    const store = String(colFind(r,'Store','STORE','Store Name','STORE NAME','Location Name','StoreName') || WH_STORE[wh] || wh).trim();
+    const brand = String(colFind(r,'Brand','BRAND','brand','Type','TYPE') || WH_BRAND[wh] || '').trim();
+    if (!brand) continue;
+    const cost = parseNum(colFind(r,'Cost','COST','cost','Cost Variance','COST VARIANCE','Variance Cost','CostVariance'));
+    const qty  = parseNum(colFind(r,'Qty','QTY','qty','Variance','VARIANCE','Qty Variance','QTY VARIANCE','QtyVariance','Units'));
+    out.push({wh, store, brand, cost, qty});
+  }
+  return out;
+}
+
+// ── Aggregation ───────────────────────────────────────────────────────────────
+function aggBrand(rows) {
+  const r = {};
+  for (const b of BRAND_ORDER) r[b] = {cost:0,qty:0};
+  for (const row of rows) if (r[row.brand]) { r[row.brand].cost += row.cost; r[row.brand].qty += row.qty; }
+  return r;
+}
+function aggStore(rows) {
+  const r = {};
+  for (const row of rows) {
+    if (!r[row.wh]) r[row.wh] = {wh:row.wh,store:row.store,brand:row.brand,cost:0,qty:0};
+    r[row.wh].cost += row.cost; r[row.wh].qty += row.qty;
+  }
+  return r;
+}
+function ytdRows() {
+  const all = [];
+  for (const m of loadedOrder) all.push(...(monthData[m]||[]));
+  return all;
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const hasDashboard = activeMonth && monthData[activeMonth];
+  document.getElementById('dashboard').style.display = hasDashboard ? '' : 'none';
+  document.getElementById('select-hint').style.display = hasDashboard ? 'none' : '';
+  if (!hasDashboard) return;
+
+  // Month column header
+  const chipEl = document.querySelector(`#month-chips [data-month="${activeMonth}"]`);
+  const mLabel = chipEl ? chipEl.dataset.label : activeMonth;
+  document.getElementById('th-month-label').textContent  = mLabel;
+  document.getElementById('th-month-label2').textContent = mLabel;
+
+  const mRows  = monthData[activeMonth] || [];
+  const allRows= ytdRows();
+
+  // BY BRAND ─────────────────────────────
+  const mBrand = aggBrand(mRows);
+  const yBrand = aggBrand(allRows);
+  const bt = document.getElementById('brand-tbody');
+  bt.innerHTML = '';
+  let mTc=0,mTq=0,yTc=0,yTq=0;
+  for (const b of BRAND_ORDER) {
+    if (activeBrand !== 'all' && activeBrand !== b) continue;
+    const m=mBrand[b], y=yBrand[b];
+    mTc+=m.cost; mTq+=m.qty; yTc+=y.cost; yTq+=y.qty;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${b}</td><td>${fmtCost(m.cost)}</td><td>${fmtQty(m.qty)}</td><td>${fmtCost(y.cost)}</td><td>${fmtQty(y.qty)}</td>`;
+    bt.appendChild(tr);
+  }
+  if (activeBrand==='all') {
+    const tot=document.createElement('tr'); tot.className='total-row';
+    tot.innerHTML=`<td>Total</td><td>${fmtCost(mTc)}</td><td>${fmtQty(mTq)}</td><td>${fmtCost(yTc)}</td><td>${fmtQty(yTq)}</td>`;
+    bt.appendChild(tot);
+  }
+
+  // BY STORE ─────────────────────────────
+  const mStore = aggStore(mRows);
+  const yStore = aggStore(allRows);
+  const st = document.getElementById('store-tbody');
+  st.innerHTML = '';
+
+  for (const brand of BRAND_ORDER) {
+    if (activeBrand !== 'all' && activeBrand !== brand) continue;
+
+    // Collect WH codes for this brand from both mappings and loaded data
+    const whSet = new Set();
+    Object.entries(WH_BRAND).forEach(([wh,b])=>{ if(b===brand) whSet.add(wh); });
+    Object.values({...mStore,...yStore}).forEach(s=>{ if(s.brand===brand) whSet.add(s.wh); });
+    if (!whSet.size) continue;
+
+    // Only show rows that have data
+    const activeWHs = [...whSet].filter(wh => mStore[wh] || yStore[wh]).sort();
+    if (!activeWHs.length) continue;
+
+    // Brand header
+    const hdr=document.createElement('tr'); hdr.className='brand-header';
+    hdr.innerHTML=`<td colspan="6">${brand.toUpperCase()}</td>`;
+    st.appendChild(hdr);
+
+    let mBc=0,mBq=0,yBc=0,yBq=0;
+    for (const wh of activeWHs) {
+      const ms=mStore[wh], ys=yStore[wh];
+      const name=(ms||ys)?.store || WH_STORE[wh] || wh;
+      const mc=ms?.cost??0, mq=ms?.qty??0, yc=ys?.cost??0, yq=ys?.qty??0;
+      mBc+=mc; mBq+=mq; yBc+=yc; yBq+=yq;
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td style="font-family:monospace;color:#6b7280">${wh}</td><td>${name}</td><td>${fmtCost(mc)}</td><td>${fmtQty(mq)}</td><td>${fmtCost(yc)}</td><td>${fmtQty(yq)}</td>`;
+      st.appendChild(tr);
+    }
+    const sub=document.createElement('tr'); sub.className='subtotal-row';
+    sub.innerHTML=`<td colspan="2">Total ${brand}</td><td>${fmtCost(mBc)}</td><td>${fmtQty(mBq)}</td><td>${fmtCost(yBc)}</td><td>${fmtQty(yBq)}</td>`;
+    st.appendChild(sub);
+  }
+
+  // Grand total for store view
+  if (activeBrand==='all') {
+    let mc2=0,mq2=0,yc2=0,yq2=0;
+    for (const s of Object.values(mStore)) { mc2+=s.cost; mq2+=s.qty; }
+    for (const s of Object.values(yStore)) { yc2+=s.cost; yq2+=s.qty; }
+    const tot=document.createElement('tr'); tot.className='total-row';
+    tot.innerHTML=`<td colspan="2">TOTAL</td><td>${fmtCost(mc2)}</td><td>${fmtQty(mq2)}</td><td>${fmtCost(yc2)}</td><td>${fmtQty(yq2)}</td>`;
+    st.appendChild(tot);
+  }
+}
+
+// ── Load / unload month ────────────────────────────────────────────────────────
+async function loadMonth(val, label) {
+  if (monthData[val]) { activeMonth = val; render(); return; }
+  try {
+    const r = await fetch(`/inventory-results/download/${val}`,{credentials:'include'});
+    if (!r.ok) throw new Error(r.statusText);
+    const ab = await r.arrayBuffer();
+    monthData[val] = parseRows(ab);
+    if (!loadedOrder.includes(val)) loadedOrder.push(val);
+    activeMonth = val;
+    render();
+  } catch(e) { alert(`Failed to load ${label}: ${e.message}`); }
+}
+function unloadMonth(val) {
+  delete monthData[val];
+  loadedOrder = loadedOrder.filter(m=>m!==val);
+  if (activeMonth===val) activeMonth = loadedOrder[loadedOrder.length-1] || null;
+  render();
+}
+
+// ── Brand tabs ────────────────────────────────────────────────────────────────
+document.getElementById('brand-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  activeBrand = btn.dataset.brand;
+  render();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/inventory-results/available-months',{credentials:'include'});
+    if (!r.ok) { window.location.href='/login'; return; }
+    const months = await r.json();
+
+    document.getElementById('state-loading').style.display='none';
+
+    if (!months.length) {
+      document.getElementById('state-empty').style.display='';
+      return;
+    }
+
+    document.getElementById('months-section').style.display='';
+    const chipsEl = document.getElementById('month-chips');
+
+    for (const m of months) {
+      const chip = document.createElement('button');
+      chip.className = 'month-chip';
+      chip.dataset.month = m.value;
+      chip.dataset.label = m.label;
+      chip.textContent = m.label;
+      chip.addEventListener('click', () => {
+        if (chip.classList.contains('chip-active')) {
+          chip.classList.remove('chip-active');
+          chip.textContent = m.label;
+          // If this was the active month, switch to another
+          if (activeMonth === m.value) {
+            unloadMonth(m.value);
+          } else {
+            unloadMonth(m.value);
+          }
+        } else {
+          chip.classList.add('chip-active');
+          chip.textContent = m.label + ' ×';
+          loadMonth(m.value, m.label);
+        }
+      });
+      chipsEl.appendChild(chip);
+    }
+
+    // Auto-load most recent available month
+    const last = months[months.length - 1];
+    const lastChip = chipsEl.querySelector(`[data-month="${last.value}"]`);
+    lastChip.classList.add('chip-active');
+    lastChip.textContent = last.label + ' ×';
+    loadMonth(last.value, last.label);
+
+  } catch(e) {
+    document.getElementById('state-loading').textContent = 'Error: ' + e.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

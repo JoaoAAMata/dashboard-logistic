@@ -7,7 +7,12 @@
     <h1>{{ page_icon }} {{ page_title }}</h1>
     <p class="text-muted">{{ page_subtitle }}</p>
   </div>
-  <a href="/home" class="btn btn-secondary">← Home</a>
+  <div style="display:flex;gap:.6rem;align-items:center">
+    {% if dashboard_url %}
+    <a href="{{ dashboard_url }}" class="btn btn-primary">📊 View Dashboard →</a>
+    {% endif %}
+    <a href="/home" class="btn btn-secondary">← Home</a>
+  </div>
 </div>
 
 {% if session.is_admin %}
