@@ -12,35 +12,35 @@
   </div>
 </div>
 
-<!-- Status tabs -->
-<div class="stats-grid">
-  <a href="/logistics" class="stat-card {% if active_filter == 'all' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.all }}</div>
-    <div class="stat-label">Total</div>
+<!-- Status filter pills -->
+<div class="status-pills">
+  <a href="/logistics" class="status-pill {% if active_filter == 'all' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.all }}</span>
+    <span class="pill-label">All</span>
   </a>
-  <a href="/logistics?status=pending" class="stat-card stat-pending {% if active_filter == 'pending' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.pending }}</div>
-    <div class="stat-label">Pending</div>
+  <a href="/logistics?status=pending" class="status-pill pill-pending {% if active_filter == 'pending' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.pending }}</span>
+    <span class="pill-label">Pending</span>
   </a>
-  <a href="/logistics?status=approved" class="stat-card stat-approved {% if active_filter == 'approved' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.approved }}</div>
-    <div class="stat-label">Approved</div>
+  <a href="/logistics?status=approved" class="status-pill pill-approved {% if active_filter == 'approved' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.approved }}</span>
+    <span class="pill-label">Approved</span>
   </a>
-  <a href="/logistics?status=warehouse" class="stat-card stat-warehouse {% if active_filter == 'warehouse' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.warehouse }}</div>
-    <div class="stat-label">Warehouse</div>
+  <a href="/logistics?status=warehouse" class="status-pill pill-warehouse {% if active_filter == 'warehouse' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.warehouse }}</span>
+    <span class="pill-label">Warehouse</span>
   </a>
-  <a href="/logistics?status=completed" class="stat-card stat-completed {% if active_filter == 'completed' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.completed }}</div>
-    <div class="stat-label">Completed</div>
+  <a href="/logistics?status=completed" class="status-pill pill-completed {% if active_filter == 'completed' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.completed }}</span>
+    <span class="pill-label">Completed</span>
   </a>
-  <a href="/logistics?status=incorrect" class="stat-card stat-incorrect {% if active_filter == 'incorrect' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.incorrect }}</div>
-    <div class="stat-label">Incorrect</div>
+  <a href="/logistics?status=incorrect" class="status-pill pill-incorrect {% if active_filter == 'incorrect' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.incorrect }}</span>
+    <span class="pill-label">Incorrect</span>
   </a>
-  <a href="/logistics?status=rejected" class="stat-card stat-rejected {% if active_filter == 'rejected' %}stat-active{% endif %}">
-    <div class="stat-value">{{ counts.rejected }}</div>
-    <div class="stat-label">Rejected</div>
+  <a href="/logistics?status=rejected" class="status-pill pill-rejected {% if active_filter == 'rejected' %}pill-active{% endif %}">
+    <span class="pill-count">{{ counts.rejected }}</span>
+    <span class="pill-label">Rejected</span>
   </a>
 </div>
 
@@ -191,6 +191,49 @@
 </div>
 
 <style>
+/* ── Status pills ────────────────────────────────────────────────────────────── */
+.status-pills {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .35rem .85rem;
+  border-radius: 99px;
+  border: 1.5px solid var(--grey-bd);
+  background: #fff;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 600;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.status-pill:hover { border-color: var(--dark); color: var(--dark); background: var(--grey-lt); }
+.pill-count {
+  font-size: .95rem;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1;
+}
+.pill-label { text-transform: uppercase; letter-spacing: .05em; font-size: .68rem; }
+
+/* Active state */
+.pill-active                              { border-color: var(--dark) !important; background: var(--dark) !important; color: #fff !important; }
+.pill-active .pill-count                  { color: #fff !important; }
+
+/* Colour accents (border + count colour when NOT active) */
+.pill-pending  .pill-count { color: #b87800; }
+.pill-approved .pill-count { color: var(--green); }
+.pill-warehouse .pill-count { color: #1565c0; }
+.pill-completed .pill-count { color: var(--green); }
+.pill-incorrect .pill-count { color: #f59e0b; }
+.pill-rejected  .pill-count { color: var(--red); }
+
 /* Filter bar */
 .filter-bar { padding:1rem 1.25rem; margin-bottom:1rem; }
 .filter-row { display:flex; gap:.75rem; align-items:flex-end; flex-wrap:wrap; }
