@@ -82,6 +82,7 @@
         <th>Delivery Time</th>
         <th>Type</th>
         <th style="text-align:center">Qty</th>
+        <th style="text-align:center">Vol</th>
         <th style="text-align:center">Total Ctn</th>
         <th style="text-align:center">Total Rln</th>
         <th>Cargo Ready</th>
@@ -102,6 +103,7 @@
         <td class="text-sm" style="white-space:nowrap">{{ d.delivery_time }}</td>
         <td class="text-sm">{{ d.order_type }}</td>
         <td style="text-align:center">{{ d.qty }}</td>
+        <td style="text-align:center">{{ d.vol }}</td>
         <td style="text-align:center;font-weight:600">{{ d.total_ctn }}</td>
         <td style="text-align:center">{{ d.total_rln }}</td>
         <td class="text-sm" style="white-space:nowrap;color:var(--muted)">{{ d.cargo_readiness }}</td>
