@@ -7,9 +7,10 @@ import secrets
 import uuid
 import os
 import shutil
+import json
 import database
 import pdf_generator
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 # ── Delivery code mapping (Excel code → system store_code) ───────────────────
 # Keys are UPPERCASE Excel STORE codes that don't match system codes directly.
@@ -34,13 +35,21 @@ app = FastAPI(title="Sacoor Logistics Portal")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# ── In-memory session store ───────────────────────────────────────────────────
-SESSIONS: dict = {}
+# ── Session store (DB-backed, survives restarts) ──────────────────────────────
+SESSION_TTL_DAYS = 30   # sessions last 30 days
 
 
 def get_session(request: Request) -> Optional[dict]:
     sid = request.cookies.get("sid")
-    return SESSIONS.get(sid)
+    if not sid:
+        return None
+    data = database.get_session_data(sid)
+    if not data:
+        return None
+    try:
+        return json.loads(data)
+    except Exception:
+        return None
 
 
 def redirect(url: str, **cookie_args):
@@ -56,6 +65,7 @@ def redirect(url: str, **cookie_args):
 async def startup():
     database.init_db()
     database.auto_archive_old_transfers()
+    database.purge_expired_sessions()
 
 
 # ── Root ──────────────────────────────────────────────────────────────────────
@@ -97,7 +107,7 @@ async def login(request: Request, username: str = Form(...), pin: str = Form(...
             "error": "Invalid username or PIN. Please try again."
         })
     sid = secrets.token_hex(32)
-    SESSIONS[sid] = {
+    session_data = {
         "store_id":       store["id"],
         "store_name":     store["store_name"],
         "store_code":     store["store_code"],
@@ -105,16 +115,18 @@ async def login(request: Request, username: str = Form(...), pin: str = Form(...
         "is_admin":       bool(store["is_admin"]),
         "is_transporter": bool(store.get("is_transporter", 0)),
     }
-    url = "/home"
-    r = RedirectResponse(url, status_code=302)
-    r.set_cookie("sid", sid, httponly=True)
+    expires_at = (datetime.utcnow() + timedelta(days=SESSION_TTL_DAYS)).isoformat()
+    database.create_session(sid, store["id"], json.dumps(session_data), expires_at)
+    r = RedirectResponse("/home", status_code=302)
+    r.set_cookie("sid", sid, httponly=True, max_age=SESSION_TTL_DAYS * 86400)
     return r
 
 
 @app.get("/logout")
 async def logout(request: Request):
     sid = request.cookies.get("sid")
-    SESSIONS.pop(sid, None)
+    if sid:
+        database.delete_session(sid)
     r = RedirectResponse("/login", status_code=302)
     r.delete_cookie("sid")
     return r

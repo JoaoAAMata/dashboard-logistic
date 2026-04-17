@@ -302,6 +302,57 @@ def init_db():
         )
     """)
 
+    # ── Sessions table ────────────────────────────────────────────────────────
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS sessions (
+            sid        TEXT PRIMARY KEY,
+            store_id   INTEGER NOT NULL,
+            data       TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL
+        )
+    """)
+
+    conn.commit()
+    conn.close()
+
+
+# ── Session helpers ───────────────────────────────────────────────────────────
+
+def create_session(sid: str, store_id: int, data: str, expires_at: str):
+    conn = get_conn()
+    conn.execute(
+        "INSERT OR REPLACE INTO sessions (sid, store_id, data, created_at, expires_at) VALUES (?,?,?,?,?)",
+        (sid, store_id, data, datetime.utcnow().isoformat(), expires_at)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_session_data(sid: str):
+    conn = get_conn()
+    row = conn.execute(
+        "SELECT data, expires_at FROM sessions WHERE sid=?", (sid,)
+    ).fetchone()
+    conn.close()
+    if not row:
+        return None
+    if datetime.utcnow().isoformat() > row["expires_at"]:
+        delete_session(sid)
+        return None
+    return row["data"]
+
+
+def delete_session(sid: str):
+    conn = get_conn()
+    conn.execute("DELETE FROM sessions WHERE sid=?", (sid,))
+    conn.commit()
+    conn.close()
+
+
+def purge_expired_sessions():
+    conn = get_conn()
+    conn.execute("DELETE FROM sessions WHERE expires_at < ?", (datetime.utcnow().isoformat(),))
     conn.commit()
     conn.close()
 
