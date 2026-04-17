@@ -20,6 +20,7 @@ DELIVERY_CODE_MAP = {
     "LALAONE":      "MLALO",
     "MITSC":        "MITSO",
     "MJOB":         "MJPO",
+    "MQUEEN":       "MQBB",
     "SUNWAY":       "MSUN",
 }
 
