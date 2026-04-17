@@ -123,12 +123,10 @@ function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 function classifyBrand(r) {
   if((r.SEASON||'').toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(r.STORET==='Sacoor') return 'Brothers';
-  if(['Blue','BlueOut'].includes(r.STORET)) return 'Blue';
-  if(r.STORET==='One') return 'One';
+  if(['Blue','BlueOut','One'].includes(r.STORET)) return 'Blue';
   if(['Club','Outlet'].includes(r.STORET)) return 'Outlet';
   if(['SacoorOnl','Warehouse'].includes(r.STORET)) {
-    if(r.TYPE==='BLUE') return 'Blue';
-    if(r.TYPE==='ONE') return 'One';
+    if(['BLUE','ONE'].includes(r.TYPE)) return 'Blue';
     if(['OUTLET','KIDS'].includes(r.TYPE)) return 'Outlet';
     if(r.TYPE==='SACOOR') {
       // PROJECTS already caught at top
