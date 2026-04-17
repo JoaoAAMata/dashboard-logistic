@@ -11,54 +11,41 @@
 
 <div class="hub-grid">
 
-  <!-- ── STOCK ROTATION & TRANSFERS ─────────────────────────────────────────── -->
-  {% if not session.is_transporter %}
+  <!-- ── 1. STOCK ROTATION & RETURNS ─────────────────────────── always shown ── -->
   <div class="hub-card hub-card-active">
-    <div class="hub-icon">📦</div>
+    <div class="hub-icon">🔄</div>
     <div class="hub-body">
-      <h2 class="hub-title">Stock Rotation & Transfers</h2>
+      <h2 class="hub-title">Stock Rotation & Returns</h2>
       <p class="hub-desc">
         {% if session.is_admin %}
-          Review, approve and manage all inter-store stock transfers. Export reports and track every shipment.
+          Review, approve and manage all inter-store stock rotation requests and returns.
+        {% elif session.is_transporter %}
+          Manage in-transit collections, update warehouse arrivals and confirm DHL receipts.
         {% else %}
-          Submit new stock rotation requests, track outgoing transfers and confirm incoming deliveries.
+          Submit stock rotation and return requests, track outgoing transfers and confirm incoming deliveries.
         {% endif %}
       </p>
     </div>
     <div class="hub-footer">
       {% if session.is_admin %}
         <a href="/logistics" class="btn btn-primary">Open Dashboard →</a>
+      {% elif session.is_transporter %}
+        <a href="/transporter" class="btn btn-primary">Open Portal →</a>
       {% else %}
         <a href="/store" class="btn btn-primary">Open Dashboard →</a>
       {% endif %}
     </div>
   </div>
-  {% endif %}
 
-  <!-- ── TRANSPORT MANAGEMENT ───────────────────────────────────────────────── -->
-  {% if session.is_transporter or session.is_admin %}
-  <div class="hub-card hub-card-active">
-    <div class="hub-icon">🚚</div>
-    <div class="hub-body">
-      <h2 class="hub-title">Transport Management</h2>
-      <p class="hub-desc">
-        Manage in-transit collections, update warehouse arrivals and confirm DHL warehouse receipts.
-      </p>
-    </div>
-    <div class="hub-footer">
-      <a href="/transporter" class="btn btn-primary">Open Portal →</a>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- ── FUTURE: DECORATION REQUESTS ───────────────────────────────────────── -->
+  <!-- ── 2. PACKAGING REQUEST ─────────────────── stores + admin only ─────── -->
+  {% if not session.is_transporter %}
   <div class="hub-card hub-card-soon">
     <div class="hub-badge-soon">Coming Soon</div>
-    <div class="hub-icon hub-icon-muted">🎨</div>
+    <div class="hub-icon hub-icon-muted">📦</div>
     <div class="hub-body">
-      <h2 class="hub-title">Decoration Requests</h2>
+      <h2 class="hub-title">Packaging Request</h2>
       <p class="hub-desc">
-        Submit and track store decoration fixture requests, approvals and delivery scheduling.
+        Request packaging materials for your store, track order status and manage stock levels.
       </p>
     </div>
     <div class="hub-footer">
@@ -66,14 +53,14 @@
     </div>
   </div>
 
-  <!-- ── FUTURE: INVENTORY COUNT ───────────────────────────────────────────── -->
+  <!-- ── 3. INVENTORY RESULTS ─────────────────── stores + admin only ─────── -->
   <div class="hub-card hub-card-soon">
     <div class="hub-badge-soon">Coming Soon</div>
     <div class="hub-icon hub-icon-muted">📊</div>
     <div class="hub-body">
-      <h2 class="hub-title">Inventory Count</h2>
+      <h2 class="hub-title">Inventory Results</h2>
       <p class="hub-desc">
-        Schedule and manage periodic stock counts, submit count sheets and reconcile discrepancies.
+        Submit periodic inventory count results, review discrepancies and track adjustment approvals.
       </p>
     </div>
     <div class="hub-footer">
@@ -81,47 +68,33 @@
     </div>
   </div>
 
-  <!-- ── FUTURE: PURCHASE ORDERS ───────────────────────────────────────────── -->
+  <!-- ── 4. STOCK DELIVERY ─────────────────────── stores + admin only ─────── -->
   <div class="hub-card hub-card-soon">
     <div class="hub-badge-soon">Coming Soon</div>
-    <div class="hub-icon hub-icon-muted">🛒</div>
+    <div class="hub-icon hub-icon-muted">🚛</div>
     <div class="hub-body">
-      <h2 class="hub-title">Purchase Orders</h2>
+      <h2 class="hub-title">Stock Delivery</h2>
       <p class="hub-desc">
-        Raise and approve store purchase orders, monitor delivery status and goods received notes.
+        Track incoming stock deliveries from the warehouse, confirm receipt and report any discrepancies.
       </p>
     </div>
     <div class="hub-footer">
       <button class="btn btn-secondary" disabled>Not Available Yet</button>
     </div>
   </div>
-
-  <!-- ── FUTURE: REPORTS & ANALYTICS ──────────────────────────────────────── -->
-  <div class="hub-card hub-card-soon">
-    <div class="hub-badge-soon">Coming Soon</div>
-    <div class="hub-icon hub-icon-muted">📈</div>
-    <div class="hub-body">
-      <h2 class="hub-title">Reports & Analytics</h2>
-      <p class="hub-desc">
-        Cross-process reporting, trend analysis and exportable dashboards for management review.
-      </p>
-    </div>
-    <div class="hub-footer">
-      <button class="btn btn-secondary" disabled>Not Available Yet</button>
-    </div>
-  </div>
+  {% endif %}
 
 </div>
 
 <style>
-/* ── Hub grid ───────────────────────────────────────────────────────────────── */
+/* ── Hub grid ────────────────────────────────────────────────────────────────── */
 .hub-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 1.25rem;
 }
 
-/* ── Hub card base ──────────────────────────────────────────────────────────── */
+/* ── Hub card base ───────────────────────────────────────────────────────────── */
 .hub-card {
   background: #fff;
   border-radius: 10px;
@@ -134,23 +107,17 @@
   transition: transform .15s, box-shadow .15s;
   border-top: 4px solid var(--grey-bd);
 }
-.hub-card-active {
-  border-top-color: var(--dark);
-}
+.hub-card-active { border-top-color: var(--dark); }
 .hub-card-active:hover {
   transform: translateY(-3px);
   box-shadow: 0 6px 20px rgba(0,0,0,.12);
 }
-.hub-card-soon {
-  border-top-color: #d1d5db;
-  opacity: .72;
-}
+.hub-card-soon { border-top-color: #d1d5db; opacity: .72; }
 
-/* ── Badge soon ─────────────────────────────────────────────────────────────── */
+/* ── Badge soon ──────────────────────────────────────────────────────────────── */
 .hub-badge-soon {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 1rem; right: 1rem;
   background: #f3f4f6;
   color: #6b7280;
   font-size: .65rem;
@@ -163,38 +130,19 @@
 }
 
 /* ── Icon ────────────────────────────────────────────────────────────────────── */
-.hub-icon {
-  font-size: 2.4rem;
-  line-height: 1;
-}
-.hub-icon-muted {
-  filter: grayscale(0.6);
-  opacity: .65;
-}
+.hub-icon { font-size: 2.2rem; line-height: 1; }
+.hub-icon-muted { filter: grayscale(.6); opacity: .65; }
 
 /* ── Body ────────────────────────────────────────────────────────────────────── */
 .hub-body { flex: 1; }
-.hub-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--dark);
-  margin-bottom: .45rem;
-}
-.hub-desc {
-  font-size: .82rem;
-  color: var(--muted);
-  line-height: 1.55;
-}
+.hub-title { font-size: .95rem; font-weight: 700; color: var(--dark); margin-bottom: .4rem; }
+.hub-desc  { font-size: .8rem; color: var(--muted); line-height: 1.55; }
 
 /* ── Footer ──────────────────────────────────────────────────────────────────── */
 .hub-footer { margin-top: .25rem; }
 
 /* ── Responsive ──────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .hub-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 540px) {
-  .hub-grid { grid-template-columns: 1fr; }
-}
+@media (max-width: 1100px) { .hub-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 540px)  { .hub-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
