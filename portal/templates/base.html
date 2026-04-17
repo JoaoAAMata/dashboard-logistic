@@ -9,15 +9,18 @@
 <body>
 
 <nav class="navbar">
-  <div class="navbar-brand">
-    <img src="/static/sacoor_logo.png" class="nav-logo" alt="Sacoor" style="height:32px;width:auto;max-width:48px;object-fit:contain;display:block;flex-shrink:0"/>
+  <a href="/home" class="navbar-brand" style="text-decoration:none">
+    <img src="/static/sacoor_logo.png" class="nav-logo" alt=""
+         onerror="this.style.display='none'"
+         style="height:32px;width:auto;max-width:120px;object-fit:contain;display:block;flex-shrink:0"/>
     <div class="nav-brand-text">
       <span class="brand-sacoor">SACOOR</span>
       <span class="brand-hub">LOGISTICS HUB</span>
     </div>
-  </div>
+  </a>
   {% if session %}
   <div class="navbar-right">
+    <a href="/home" class="nav-link">🏠 Home</a>
     <span class="nav-user">{{ session.store_name }}</span>
     <a href="/change-pin" class="nav-link">PIN</a>
     <a href="/logout" class="nav-link nav-logout">Logout</a>

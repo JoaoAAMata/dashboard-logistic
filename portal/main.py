@@ -49,12 +49,17 @@ async def root(request: Request):
     s = get_session(request)
     if not s:
         return RedirectResponse("/login")
-    if s["is_admin"]:
-        return RedirectResponse("/logistics")
-    elif s.get("is_transporter"):
-        return RedirectResponse("/transporter")
-    else:
-        return RedirectResponse("/store")
+    return RedirectResponse("/home")
+
+
+# ── Home hub ──────────────────────────────────────────────────────────────────
+
+@app.get("/home", response_class=HTMLResponse)
+async def home(request: Request):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("home.html", {"request": request, "session": s})
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
@@ -63,12 +68,7 @@ async def root(request: Request):
 async def login_page(request: Request):
     s = get_session(request)
     if s:
-        if s["is_admin"]:
-            return RedirectResponse("/logistics")
-        elif s.get("is_transporter"):
-            return RedirectResponse("/transporter")
-        else:
-            return RedirectResponse("/store")
+        return RedirectResponse("/home")
     return templates.TemplateResponse("login.html", {"request": request})
 
 
@@ -89,12 +89,7 @@ async def login(request: Request, username: str = Form(...), pin: str = Form(...
         "is_admin":       bool(store["is_admin"]),
         "is_transporter": bool(store.get("is_transporter", 0)),
     }
-    if store["is_admin"]:
-        url = "/logistics"
-    elif store.get("is_transporter"):
-        url = "/transporter"
-    else:
-        url = "/store"
+    url = "/home"
     r = RedirectResponse(url, status_code=302)
     r.set_cookie("sid", sid, httponly=True)
     return r
