@@ -185,8 +185,11 @@ async function init(){
   if(badge) badge.textContent = new Date().toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});
 
   try{
-    const resp = await fetch('/noos-sales/data');
-    if(resp.status===401){ window.location.href='/login'; return; }
+    const resp = await fetch('/noos-sales/data',{credentials:'include'});
+    if(resp.status===401){
+      showError('Session expired — <a href="/login" style="color:#185FA5">click here to log in again</a> and then return to this dashboard.');
+      return;
+    }
     if(!resp.ok){
       showError('No NOOS sales data uploaded yet. Please ask an admin to upload the file.');
       return;
