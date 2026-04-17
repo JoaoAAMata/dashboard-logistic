@@ -11,6 +11,21 @@ import database
 import pdf_generator
 from datetime import date, datetime
 
+# ── Delivery code mapping (Excel code → system store_code) ───────────────────
+# Keys are UPPERCASE Excel STORE codes that don't match system codes directly.
+DELIVERY_CODE_MAP = {
+    "1UTAB":        "M1UTAB",
+    "IMAGO":        "IMAG",
+    "JOHORCLASSIC": "MJOCL",
+    "LALAONE":      "MLALO",
+    "MITSC":        "MITSO",
+    "MJOB":         "MJPO",
+    "SUNWAY":       "MSUN",
+}
+
+# Excel codes that represent non-store entities — silently ignored
+DELIVERY_IGNORE = {"ONLINE", "ONLINE-SEA", "UNIF", "UNIF-MY", "MEMP", "MIOI", "MJOBBLUE"}
+
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "static", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -609,14 +624,12 @@ async def logistics_stock_delivery(request: Request, error: str = "", success: s
     deliveries  = database.get_all_deliveries()
     upload_info = database.get_delivery_upload_info()
     store_codes = sorted({d["store_code"] for d in deliveries if d["store_code"]})
-    # Codes that exist in the Excel but are not real stores — always ignore
-    IGNORED_CODES = {"ONLINE", "UNIF", "MEMP", "MIOI", "MJOBBLUE", "ONLINE-SEA"}
     # Find codes that don't match any system store (excluding ignored ones)
     all_stores  = database.get_all_stores(exclude_admin=False)
     sys_codes   = {st["store_code"].upper() for st in all_stores}
     unmatched   = sorted({
         c for c in store_codes
-        if c.upper() not in sys_codes and c.upper() not in IGNORED_CODES
+        if c.upper() not in sys_codes and c.upper() not in DELIVERY_IGNORE
     })
     return templates.TemplateResponse("logistics_stock_delivery.html", {
         "request": request, "session": s,
@@ -688,11 +701,16 @@ async def upload_stock_delivery(request: Request, file: UploadFile = File(...)):
             # Skip completely empty rows
             if not any(v for v in raw if v is not None and str(v).strip()):
                 continue
+            # Normalise store code: uppercase → apply mapping → skip ignored
+            raw_code = _v(raw, ci["store_code"]).strip().upper()
+            norm_code = DELIVERY_CODE_MAP.get(raw_code, raw_code)
+            if norm_code in DELIVERY_IGNORE:
+                continue
             rows.append({
                 "no":               _v(raw, ci["no"]),
                 "mth":              _v(raw, ci["mth"]),
                 "order_rtn_no":     _v(raw, ci["order_rtn_no"]),
-                "store_code":       _v(raw, ci["store_code"]),
+                "store_code":       norm_code,
                 "store_name_excel": _v(raw, ci["store_name_excel"]),
                 "order_drop_date":  _parse_date_str(raw[ci["order_drop_date"]] if ci["order_drop_date"] is not None and ci["order_drop_date"] < len(raw) else ""),
                 "picking_complete": _parse_date_str(raw[ci["picking_complete"]] if ci["picking_complete"] is not None and ci["picking_complete"] < len(raw) else ""),

@@ -103,6 +103,15 @@ STORES = [
     ("MSUN",    "MSUN - Sunway Pyramid Brothers",             "msun",
      "Sunway Pyramid, Unit G1.06, Bandar Sunway, 47500 Petaling Jaya",        "Selangor",      "Malaysia", 0),
 
+    ("MQBB",    "MQBB - Queensbay Brothers",                 "mqbb",
+     "Queensbay Mall, 100, Persiaran Bayan Indah, 11900 Bayan Lepas",         "Penang",        "Malaysia", 0),
+
+    ("MTRX",    "MTRX - TRX Brothers",                       "mtrx",
+     "The Exchange TRX, Jalan Tun Razak, 55188 Kuala Lumpur",                 "Kuala Lumpur",  "Malaysia", 0),
+
+    ("MJOCL",   "MJOCL - Johor Classic",                     "mjocl",
+     "Johor Premium Outlets, Jalan Premium Outlets Indahpura, 81000 Kulai",   "Johor",         "Malaysia", 0),
+
     # ── Admin — Logistics HQ ──────────────────────────────────────────────────
     ("PVOFF",   "SACOOR HQ - Logistics",                     "logistics",
      "Pavilion Retail Office Block, Level 9, Unit 9.03.00, 55100 Kuala Lumpur",
