@@ -83,7 +83,7 @@ const INIT_DATA = {"date": "31 March 2026", "kpi": {"Brothers": 57282, "Outlet":
 const BRAND_COLORS = {Brothers:'#185FA5',Outlet:'#1D9E75',Blue:'#BA7517',Projects:'#534AB7',One:'#E76F51'};
 const CAT_COLORS = {Collection:'#185FA5',NOOS:'#1D9E75',Leftovers:'#888780','Cleaning 1':'#D85A30','Cleaning 2':'#E24B4A',Projects:'#534AB7'};
 const EXCL_STORES = ['Corp-MY','MY-LOGGM-DHL-DEF','UNIF-MY'];
-const BROTHERS_SEASONS = ['SUMMER 26','WINTER 25','NOOS'];
+const BROTHERS_SEASONS = ['SUMMER 26','NOOS'];
 
 function saveRawRows(rows, fname) {
   try {
@@ -116,6 +116,7 @@ let DATA = (()=>{ try{ const s=localStorage.getItem('logDash_top10'); return s?J
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
+  if((r.SEASON||'').toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(r.STORET==='Sacoor') return 'Brothers';
   if(['Blue','BlueOut'].includes(r.STORET)) return 'Blue';
   if(r.STORET==='One') return 'One';
@@ -125,7 +126,7 @@ function classifyBrand(r) {
     if(r.TYPE==='ONE') return 'One';
     if(['OUTLET','KIDS'].includes(r.TYPE)) return 'Outlet';
     if(r.TYPE==='SACOOR') {
-      if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
+      // PROJECTS already caught at top
       return BROTHERS_SEASONS.includes(r.SEASON) ? 'Brothers' : 'Outlet';
     }
   }
@@ -137,7 +138,8 @@ function classifySeasonCat(r) {
   const b=r._brand;
   if(s.toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(s==='NOOS') return 'NOOS';
-  if(s==='SUMMER 26'||s==='WINTER 25') return 'Collection';
+  if(s==='SUMMER 26') return 'Collection';
+  if(s==='WINTER 25') return b==='Brothers' ? 'Leftovers' : 'Cleaning 1';
   if(b==='Brothers') {
     if(s==='SUMMER 25') return 'Leftovers';
     if(s==='WINTER 24'||s==='SUMMER 24') return 'Cleaning 1';

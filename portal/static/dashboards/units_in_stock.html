@@ -205,7 +205,7 @@ const BRAND_COLORS = {Brothers:'#185FA5',Outlet:'#1D9E75',Blue:'#BA7517',Project
 const EXCL_STORES = ['Corp-MY','MY-LOGGM-DHL-DEF','UNIF-MY'];
 // Seasons (coluna SEASON) consideradas Brothers quando TYPE = SACOOR
 // Todas as restantes seasons com TYPE = SACOOR → Outlet
-const BROTHERS_SEASONS = ['SUMMER 26','WINTER 25','NOOS'];
+const BROTHERS_SEASONS = ['SUMMER 26','NOOS'];
 
 function saveRawRows(rows, fname) {
   try {
@@ -240,6 +240,7 @@ let DATA = (()=>{ try{ const s=localStorage.getItem('logDash_units'); return s?J
 function fmtN(n){ return Number(n).toLocaleString('en-MY'); }
 
 function classifyBrand(r) {
+  if((r.SEASON||'').toUpperCase().startsWith('PROJECTS')) return 'Projects';
   if(r.STORET==='Sacoor') return 'Brothers';
   if(['Blue','BlueOut'].includes(r.STORET)) return 'Blue';
   if(r.STORET==='One') return 'One';
@@ -249,7 +250,7 @@ function classifyBrand(r) {
     if(r.TYPE==='ONE') return 'One';
     if(['OUTLET','KIDS'].includes(r.TYPE)) return 'Outlet';
     if(r.TYPE==='SACOOR') {
-      if(r.SEASON && r.SEASON.toUpperCase().startsWith('PROJECTS')) return 'Projects';
+      // PROJECTS already caught at top
       return BROTHERS_SEASONS.includes(r.SEASON) ? 'Brothers' : 'Outlet';
     }
   }
