@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NOOS Sales 2026</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh}
+
+/* ── Topbar ── */
+.topbar{background:#fff;border-bottom:1px solid rgba(0,0,0,.08);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.back-btn{font-size:.82rem;font-weight:600;color:#185FA5;text-decoration:none;padding:.3rem .7rem;border:1px solid #c7d6ff;border-radius:6px;background:#f0f4ff;white-space:nowrap}
+.back-btn:hover{background:#e0eaff}
+.topbar-title{font-size:15px;font-weight:700}
+.topbar-sub{font-size:11px;color:#9a9a94;margin-top:1px}
+
+/* ── Brand + View tabs ── */
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+.tab-btn{font-size:.75rem;font-weight:600;padding:.3rem .75rem;border-radius:99px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer;transition:all .15s}
+.tab-btn:hover{background:#f0f4ff;border-color:#c7d6ff;color:#185FA5}
+.tab-active{background:#1a1a18!important;border-color:#1a1a18!important;color:#fff!important}
+
+/* ── Main ── */
+.main{max-width:1200px;margin:0 auto;padding:24px 20px}
+
+/* ── Month chips ── */
+.section-label{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9a9a94;margin-bottom:8px}
+.month-chip{font-size:.78rem;font-weight:600;padding:.3rem .85rem;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
+.month-chip:hover{border-color:#c7d6ff;color:#185FA5}
+.chip-active{background:#1a3a8f!important;border-color:#1a3a8f!important;color:#fff!important}
+
+/* ── KPI bar ── */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+.kpi-card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:1rem 1.25rem}
+.kpi-label{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a9a94;margin-bottom:.35rem}
+.kpi-value{font-size:1.5rem;font-weight:800;color:#1a1a18}
+.kpi-sub{font-size:.72rem;color:#9a9a94;margin-top:.2rem}
+
+/* ── Card ── */
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+.card-title{font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a9a94;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #f0f0ee;display:flex;align-items:center;justify-content:space-between}
+
+/* ── Table ── */
+.data-table{width:100%;border-collapse:collapse;font-size:.83rem}
+.data-table th{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9a94;padding:.55rem .85rem;border-bottom:2px solid #f0f0ee;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
+.data-table th:first-child,.data-table th:nth-child(2){text-align:left}
+.data-table th:hover{color:#1a1a18}
+.data-table td{padding:.5rem .85rem;border-bottom:1px solid #f5f5f3;text-align:right;white-space:nowrap}
+.data-table td:first-child,.data-table td:nth-child(2){text-align:left}
+.data-table tbody tr:hover{background:#fafafa}
+.data-table tr:last-child td{border-bottom:none}
+.total-row td{font-weight:800;border-top:2px solid #1a1a18;background:#fafaf8}
+
+/* ── View panels ── */
+.view-panel{display:none}
+.view-panel.active{display:block}
+
+/* ── Chart ── */
+.chart-wrap{position:relative;height:320px}
+
+/* ── States ── */
+.empty-state{text-align:center;padding:3rem;color:#9a9a94;font-size:.9rem}
+.spinner{display:inline-block;width:20px;height:20px;border:2px solid #e5e7eb;border-top-color:#1a1a18;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Sort indicator ── */
+.sort-asc::after{content:' ↑'}
+.sort-desc::after{content:' ↓'}
+
+/* Brand pills in header */
+.pill-b{display:inline-block;font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:99px;background:#E6F1FB;color:#185FA5}
+.pill-o{display:inline-block;font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:99px;background:#EAF3DE;color:#3B6D11}
+
+@media(max-width:700px){
+  .topbar{flex-direction:column;align-items:flex-start}
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .data-table{font-size:.75rem}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a href="/noos-sales" class="back-btn">← Back</a>
+    <div>
+      <div class="topbar-title">NOOS Sales 2026</div>
+      <div class="topbar-sub">Malaysia · Brothers · Outlet</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <!-- Brand filter -->
+    <div class="tabs" id="brand-tabs">
+      <button class="tab-btn tab-active" data-brand="all">All</button>
+      <button class="tab-btn" data-brand="Brothers">Brothers</button>
+      <button class="tab-btn" data-brand="Outlet">Outlet</button>
+    </div>
+    <!-- View selector -->
+    <div class="tabs" id="view-tabs" style="border-left:1px solid #e5e7eb;padding-left:10px">
+      <button class="tab-btn tab-active" data-view="weekly">Weekly</button>
+      <button class="tab-btn" data-view="family">Family</button>
+      <button class="tab-btn" data-view="styles">Styles</button>
+      <button class="tab-btn" data-view="stock">Stock Top 20</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <div id="state-loading" class="empty-state">
+    <span class="spinner"></span> Loading available months…
+  </div>
+
+  <div id="state-empty" class="empty-state" style="display:none">
+    No NOOS sales files uploaded yet.<br>
+    <a href="/noos-sales" style="color:#185FA5;font-weight:600">Go to NOOS Sales to upload files →</a>
+  </div>
+
+  <!-- Month selector -->
+  <div id="months-section" style="display:none;margin-bottom:1.5rem">
+    <div class="section-label">Loaded Months — click to load/unload</div>
+    <div id="month-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+  </div>
+
+  <!-- KPI bar -->
+  <div class="kpi-row" id="kpi-row" style="display:none">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Sales</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-units">— units</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="pill-b">Brothers</span></div>
+      <div class="kpi-value" id="kpi-brothers">—</div>
+      <div class="kpi-sub" id="kpi-brothers-units">— units</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label"><span class="pill-o">Outlet</span></div>
+      <div class="kpi-value" id="kpi-outlet">—</div>
+      <div class="kpi-sub" id="kpi-outlet-units">— units</div>
+    </div>
+  </div>
+
+  <!-- ── WEEKLY view ── -->
+  <div class="view-panel active" id="panel-weekly">
+    <div class="card">
+      <div class="card-title">
+        <span>Weekly Sales (2025–2026)</span>
+        <span style="font-size:.72rem;font-weight:400;color:#9a9a94">ISO 8601 · Week assigned to month of Thursday</span>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
+    </div>
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table class="data-table" id="tbl-weekly">
+        <thead>
+          <tr>
+            <th onclick="sortTable('tbl-weekly',0)">Year</th>
+            <th onclick="sortTable('tbl-weekly',1)">Week</th>
+            <th onclick="sortTable('tbl-weekly',2)">Month</th>
+            <th onclick="sortTable('tbl-weekly',3)">Brothers Sales</th>
+            <th onclick="sortTable('tbl-weekly',4)">Brothers Qty</th>
+            <th onclick="sortTable('tbl-weekly',5)">Outlet Sales</th>
+            <th onclick="sortTable('tbl-weekly',6)">Outlet Qty</th>
+            <th onclick="sortTable('tbl-weekly',7)">Total Sales</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-weekly"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── FAMILY view ── -->
+  <div class="view-panel" id="panel-family">
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table class="data-table" id="tbl-family">
+        <thead>
+          <tr>
+            <th onclick="sortTable('tbl-family',0)">Family</th>
+            <th onclick="sortTable('tbl-family',1)">Design</th>
+            <th onclick="sortTable('tbl-family',2)">Brothers Sales</th>
+            <th onclick="sortTable('tbl-family',3)">Brothers Qty</th>
+            <th onclick="sortTable('tbl-family',4)">Outlet Sales</th>
+            <th onclick="sortTable('tbl-family',5)">Outlet Qty</th>
+            <th onclick="sortTable('tbl-family',6)">Total Sales</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-family"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── STYLES view ── -->
+  <div class="view-panel" id="panel-styles">
+    <div class="card" style="padding:0;overflow-x:auto">
+      <table class="data-table" id="tbl-styles">
+        <thead>
+          <tr>
+            <th onclick="sortTable('tbl-styles',0)">Style</th>
+            <th onclick="sortTable('tbl-styles',1)">Design</th>
+            <th onclick="sortTable('tbl-styles',2)">Color</th>
+            <th onclick="sortTable('tbl-styles',3)">Brand</th>
+            <th onclick="sortTable('tbl-styles',4)">Sales</th>
+            <th onclick="sortTable('tbl-styles',5)">Qty</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-styles"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── STOCK Top 20 view ── -->
+  <div class="view-panel" id="panel-stock">
+    <div class="card">
+      <div class="card-title">
+        <span>Stock Top 20 References</span>
+        <span style="font-size:.72rem;font-weight:400;color:#9a9a94">From stock data — excl. DEF &amp; UNI stores · stock &gt; 0</span>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="tbl-stock">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Reference</th>
+              <th>Style</th>
+              <th>Design</th>
+              <th>Color</th>
+              <th onclick="sortTable('tbl-stock',5)">Stock</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-stock"></tbody>
+        </table>
+      </div>
+      <div id="stock-no-data" style="display:none;text-align:center;padding:2rem;color:#9a9a94;font-size:.85rem">
+        Upload stock data in Stock Reports to see Top 20.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── Constants ─────────────────────────────────────────────────────────────────
+const YEARS_FILTER = [2025, 2026]; // for weekly + family views
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let allRows     = [];   // all parsed rows from all loaded months
+let monthData   = {};   // {month: rows[]}
+let loadedOrder = [];
+let activeBrand = 'all';
+let activeView  = 'weekly';
+let weeklyChart = null;
+let sortState   = {}; // {tableId: {col, dir}}
+
+// ── Date helpers ──────────────────────────────────────────────────────────────
+function excelSerialToDate(serial) {
+  // Excel serial: 1 = Jan 1, 1900. Adjust for Excel's leap year bug (+1 offset after Feb 28 1900)
+  return new Date(Math.round((serial - 25569) * 86400 * 1000));
+}
+
+function isoWeekYear(d) {
+  // Returns {year, week} per ISO 8601
+  const date = new Date(d);
+  date.setHours(0, 0, 0, 0);
+  const thu = new Date(date);
+  thu.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
+  const yearStart = new Date(thu.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((thu - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7);
+  return { year: thu.getFullYear(), week: weekNum };
+}
+
+function thursdayMonth(d) {
+  // Month (1–12) of the Thursday in the ISO week
+  const date = new Date(d);
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+  const thu = new Date(monday);
+  thu.setDate(monday.getDate() + 3);
+  return thu.getMonth() + 1;
+}
+
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// ── Formatting ─────────────────────────────────────────────────────────────────
+function fmtSale(n) {
+  if (!n) return '—';
+  return 'RM ' + Number(n).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtN(n) { return Number(n || 0).toLocaleString(); }
+
+// ── Classification ────────────────────────────────────────────────────────────
+function classifyBrand(type) {
+  return type === 'SACOOR' ? 'Brothers' : 'Outlet';
+}
+
+// ── Parse Excel ───────────────────────────────────────────────────────────────
+function parseRows(ab) {
+  const wb  = XLSX.read(ab, {type:'array', cellDates:false});
+  const ws  = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+  const out = [];
+  for (const r of raw) {
+    const sale = Number(r['SALE'] || 0);
+    if (sale === 0) continue;                         // SALE = 0 → excluded
+
+    const dateSerial = Number(r['DATE'] || 0);
+    if (dateSerial < 40000) continue;                 // invalid date → excluded
+
+    const jsDate = excelSerialToDate(dateSerial);
+    const {year, week} = isoWeekYear(jsDate);
+    const month = thursdayMonth(jsDate);
+
+    const type   = String(r['TYPE'] || '').trim();
+    const brand  = classifyBrand(type);
+    const style  = String(r['STYLE']  || '').trim();
+    const design = String(r['DESIGN'] || '').trim();
+    const color  = String(r['COLOR']  || '').trim();
+    const family = String(r['FAMILY'] || '').trim();
+    const qtt    = Number(r['QTT'] || 0);
+
+    out.push({date:jsDate, year, week, month, brand, type, style, design, color, family, sale, qtt});
+  }
+  return out;
+}
+
+// ── Aggregation ───────────────────────────────────────────────────────────────
+function filteredRows() {
+  if (activeBrand === 'all') return allRows;
+  return allRows.filter(r => r.brand === activeBrand);
+}
+
+function buildWeekly() {
+  const rows = allRows.filter(r => YEARS_FILTER.includes(r.year));
+  const map = {};
+  for (const r of rows) {
+    const key = `${r.year}-W${String(r.week).padStart(2,'0')}`;
+    if (!map[key]) map[key] = {year:r.year, week:r.week, month:r.month, bSale:0, bQtt:0, oSale:0, oQtt:0};
+    if (r.brand === 'Brothers') { map[key].bSale += r.sale; map[key].bQtt += r.qtt; }
+    else                        { map[key].oSale += r.sale; map[key].oQtt += r.qtt; }
+  }
+  return Object.values(map).sort((a,b)=> a.year!==b.year ? a.year-b.year : a.week-b.week);
+}
+
+function buildFamily() {
+  const rows = allRows.filter(r => YEARS_FILTER.includes(r.year));
+  const map = {};
+  for (const r of rows) {
+    if (!map[r.family]) map[r.family] = {family:r.family, design:r.design, bSale:0, bQtt:0, oSale:0, oQtt:0};
+    if (r.brand === 'Brothers') { map[r.family].bSale += r.sale; map[r.family].bQtt += r.qtt; }
+    else                        { map[r.family].oSale += r.sale; map[r.family].oQtt += r.qtt; }
+  }
+  return Object.values(map).sort((a,b) => (b.bSale+b.oSale) - (a.bSale+a.oSale));
+}
+
+function buildStyles() {
+  const rows = filteredRows(); // all years
+  const map = {};
+  for (const r of rows) {
+    const key = r.style + '|' + r.color;
+    if (!map[key]) map[key] = {style:r.style, design:r.design, color:r.color, brand:r.brand, sale:0, qtt:0};
+    map[key].sale += r.sale; map[key].qtt += r.qtt;
+  }
+  return Object.values(map).sort((a,b) => b.sale - a.sale);
+}
+
+function buildStock() {
+  try {
+    const compressed = localStorage.getItem('logDash_raw');
+    if (!compressed) return [];
+    // Try LZString first, then plain JSON
+    let rows;
+    if (window.LZString) {
+      const s = LZString.decompressFromUTF16(compressed);
+      rows = JSON.parse(s);
+    } else {
+      rows = JSON.parse(compressed);
+    }
+    // Expand slim format: a=STORE,b=STORET,c=BRAND,d=TYPE,e=SEASON,f=DESIGN,g=STOCK,h=PVP,i=REF,j=COLOR,k=SIZE,l=STYLE
+    const expanded = rows.map(r => ({
+      STORE:r.a, STORET:r.b, BRAND:r.c, TYPE:r.d, SEASON:r.e,
+      DESIGN:r.f, STOCK:Number(r.g)||0, PVP:r.h, REF:r.i, COLOR:r.j, SIZE:r.k, STYLE:r.l||''
+    }));
+    // Exclude DEF and UNI stores, stock ≤ 0
+    const valid = expanded.filter(r => r.STOCK > 0 && !r.STORE.includes('DEF') && !r.STORE.includes('UNI'));
+    // Aggregate by REF
+    const refMap = {};
+    for (const r of valid) {
+      if (!refMap[r.REF]) refMap[r.REF] = {ref:r.REF, style:r.STYLE, design:r.DESIGN, color:r.COLOR, stock:0};
+      refMap[r.REF].stock += r.STOCK;
+    }
+    return Object.values(refMap).sort((a,b) => b.stock - a.stock).slice(0, 20);
+  } catch(e) {
+    return [];
+  }
+}
+
+// ── KPI update ────────────────────────────────────────────────────────────────
+function updateKPI() {
+  const rows = filteredRows();
+  const bSale = rows.filter(r=>r.brand==='Brothers').reduce((s,r)=>s+r.sale,0);
+  const oSale = rows.filter(r=>r.brand==='Outlet').reduce((s,r)=>s+r.sale,0);
+  const bQtt  = rows.filter(r=>r.brand==='Brothers').reduce((s,r)=>s+r.qtt,0);
+  const oQtt  = rows.filter(r=>r.brand==='Outlet').reduce((s,r)=>s+r.qtt,0);
+  document.getElementById('kpi-total').textContent   = fmtSale(bSale+oSale);
+  document.getElementById('kpi-units').textContent   = fmtN(bQtt+oQtt) + ' units';
+  document.getElementById('kpi-brothers').textContent = fmtSale(bSale);
+  document.getElementById('kpi-brothers-units').textContent = fmtN(bQtt) + ' units';
+  document.getElementById('kpi-outlet').textContent  = fmtSale(oSale);
+  document.getElementById('kpi-outlet-units').textContent  = fmtN(oQtt) + ' units';
+}
+
+// ── Render weekly chart ────────────────────────────────────────────────────────
+function renderWeekly() {
+  const data = buildWeekly();
+  const labels   = data.map(d => `${d.year} W${d.week}`);
+  const bSales   = data.map(d => d.bSale);
+  const oSales   = data.map(d => d.oSale);
+
+  if (weeklyChart) weeklyChart.destroy();
+  const ctx = document.getElementById('chart-weekly').getContext('2d');
+  weeklyChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label:'Brothers', data:bSales, backgroundColor:'#185FA5CC', borderRadius:3 },
+        { label:'Outlet',   data:oSales, backgroundColor:'#1D9E75CC', borderRadius:3 },
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: RM ${ctx.parsed.y.toLocaleString('en-MY',{minimumFractionDigits:2})}`}}},
+      scales:{ x:{ticks:{maxRotation:60,font:{size:10}}}, y:{ticks:{callback:v=>'RM '+v.toLocaleString('en-MY',{maximumFractionDigits:0})}}}
+    }
+  });
+
+  // Table
+  const tbody = document.getElementById('tbody-weekly');
+  tbody.innerHTML = '';
+  let totB=0, totBQ=0, totO=0, totOQ=0;
+  for (const d of data) {
+    totB+=d.bSale; totBQ+=d.bQtt; totO+=d.oSale; totOQ+=d.oQtt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${d.year}</td><td>W${d.week}</td><td>${MONTH_NAMES[d.month-1]}</td>
+      <td>${fmtSale(d.bSale)}</td><td>${fmtN(d.bQtt)}</td>
+      <td>${fmtSale(d.oSale)}</td><td>${fmtN(d.oQtt)}</td>
+      <td style="font-weight:600">${fmtSale(d.bSale+d.oSale)}</td>`;
+    tbody.appendChild(tr);
+  }
+  const tot = document.createElement('tr'); tot.className='total-row';
+  tot.innerHTML = `<td colspan="3">Total</td><td>${fmtSale(totB)}</td><td>${fmtN(totBQ)}</td><td>${fmtSale(totO)}</td><td>${fmtN(totOQ)}</td><td>${fmtSale(totB+totO)}</td>`;
+  tbody.appendChild(tot);
+}
+
+// ── Render family ─────────────────────────────────────────────────────────────
+function renderFamily() {
+  const data = buildFamily();
+  const tbody = document.getElementById('tbody-family');
+  tbody.innerHTML = '';
+  let totB=0,totBQ=0,totO=0,totOQ=0;
+  for (const d of data) {
+    totB+=d.bSale; totBQ+=d.bQtt; totO+=d.oSale; totOQ+=d.oQtt;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-family:monospace;font-size:.78rem">${d.family}</td><td>${d.design}</td>
+      <td>${fmtSale(d.bSale)}</td><td>${fmtN(d.bQtt)}</td>
+      <td>${fmtSale(d.oSale)}</td><td>${fmtN(d.oQtt)}</td>
+      <td style="font-weight:600">${fmtSale(d.bSale+d.oSale)}</td>`;
+    tbody.appendChild(tr);
+  }
+  const tot = document.createElement('tr'); tot.className='total-row';
+  tot.innerHTML = `<td colspan="2">Total</td><td>${fmtSale(totB)}</td><td>${fmtN(totBQ)}</td><td>${fmtSale(totO)}</td><td>${fmtN(totOQ)}</td><td>${fmtSale(totB+totO)}</td>`;
+  tbody.appendChild(tot);
+}
+
+// ── Render styles ─────────────────────────────────────────────────────────────
+function renderStyles() {
+  const data = buildStyles().slice(0, 200); // top 200
+  const tbody = document.getElementById('tbody-styles');
+  tbody.innerHTML = '';
+  for (const d of data) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-family:monospace;font-size:.78rem">${d.style}</td><td>${d.design}</td><td>${d.color}</td>
+      <td><span class="${d.brand==='Brothers'?'pill-b':'pill-o'}">${d.brand}</span></td>
+      <td>${fmtSale(d.sale)}</td><td>${fmtN(d.qtt)}</td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ── Render stock ──────────────────────────────────────────────────────────────
+function renderStock() {
+  const data = buildStock();
+  const tbody = document.getElementById('tbody-stock');
+  const noData = document.getElementById('stock-no-data');
+  tbody.innerHTML = '';
+  if (!data.length) { noData.style.display=''; return; }
+  noData.style.display = 'none';
+  data.forEach((d,i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:#9a9a94">${i+1}</td>
+      <td style="font-family:monospace;font-size:.78rem">${d.ref}</td>
+      <td style="font-family:monospace;font-size:.78rem">${d.style}</td>
+      <td>${d.design}</td><td>${d.color}</td>
+      <td style="font-weight:700">${fmtN(d.stock)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Render active view ────────────────────────────────────────────────────────
+function render() {
+  if (!allRows.length) return;
+  updateKPI();
+  if (activeView === 'weekly') renderWeekly();
+  else if (activeView === 'family') renderFamily();
+  else if (activeView === 'styles') renderStyles();
+  else if (activeView === 'stock') renderStock();
+}
+
+// ── Table sort ────────────────────────────────────────────────────────────────
+function sortTable(id, col) {
+  const table = document.getElementById(id);
+  const tbody = table.querySelector('tbody');
+  const rows  = Array.from(tbody.querySelectorAll('tr:not(.total-row)'));
+  const state = sortState[id] || {col:-1, dir:1};
+  const dir   = (state.col === col) ? -state.dir : -1; // default descending
+  sortState[id] = {col, dir};
+
+  rows.sort((a,b) => {
+    const av = a.cells[col]?.textContent.replace(/[^0-9.\-]/g,'') || '';
+    const bv = b.cells[col]?.textContent.replace(/[^0-9.\-]/g,'') || '';
+    const an = parseFloat(av), bn = parseFloat(bv);
+    if (!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
+    return dir * av.localeCompare(bv);
+  });
+
+  // Update header indicators
+  table.querySelectorAll('th').forEach((th,i) => {
+    th.classList.remove('sort-asc','sort-desc');
+    if (i===col) th.classList.add(dir===1?'sort-asc':'sort-desc');
+  });
+
+  const totalRow = tbody.querySelector('.total-row');
+  rows.forEach(r => tbody.appendChild(r));
+  if (totalRow) tbody.appendChild(totalRow);
+}
+
+// ── Load month ────────────────────────────────────────────────────────────────
+async function loadMonth(val, label) {
+  if (monthData[val]) {
+    if (!loadedOrder.includes(val)) loadedOrder.push(val);
+    rebuildAll(); render(); return;
+  }
+  try {
+    const r = await fetch(`/noos-sales/download/${val}`, {credentials:'include'});
+    if (!r.ok) throw new Error(r.statusText);
+    const ab = await r.arrayBuffer();
+    monthData[val] = parseRows(ab);
+    if (!loadedOrder.includes(val)) loadedOrder.push(val);
+    rebuildAll(); render();
+  } catch(e) { alert(`Failed to load ${label}: ${e.message}`); }
+}
+
+function unloadMonth(val) {
+  delete monthData[val];
+  loadedOrder = loadedOrder.filter(m => m !== val);
+  rebuildAll(); render();
+}
+
+function rebuildAll() {
+  allRows = [];
+  for (const m of loadedOrder) allRows.push(...(monthData[m] || []));
+  document.getElementById('kpi-row').style.display = allRows.length ? '' : 'none';
+}
+
+// ── Tab listeners ─────────────────────────────────────────────────────────────
+document.getElementById('brand-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#brand-tabs .tab-btn').forEach(b => b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  activeBrand = btn.dataset.brand;
+  render();
+});
+
+document.getElementById('view-tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab-btn');
+  if (!btn) return;
+  document.querySelectorAll('#view-tabs .tab-btn').forEach(b => b.classList.remove('tab-active'));
+  btn.classList.add('tab-active');
+  activeView = btn.dataset.view;
+  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + activeView).classList.add('active');
+  render();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    const r = await fetch('/noos-sales/available-months', {credentials:'include'});
+    if (!r.ok) { window.location.href = '/login'; return; }
+    const months = await r.json();
+
+    document.getElementById('state-loading').style.display = 'none';
+
+    if (!months.length) {
+      document.getElementById('state-empty').style.display = '';
+      return;
+    }
+
+    document.getElementById('months-section').style.display = '';
+    const chipsEl = document.getElementById('month-chips');
+
+    for (const m of months) {
+      const chip = document.createElement('button');
+      chip.className = 'month-chip';
+      chip.dataset.month = m.value;
+      chip.dataset.label = m.label;
+      chip.textContent = m.label;
+      chip.addEventListener('click', () => {
+        if (chip.classList.contains('chip-active')) {
+          chip.classList.remove('chip-active');
+          chip.textContent = m.label;
+          unloadMonth(m.value);
+        } else {
+          chip.classList.add('chip-active');
+          chip.textContent = m.label + ' ×';
+          loadMonth(m.value, m.label);
+        }
+      });
+      chipsEl.appendChild(chip);
+    }
+
+    // Auto-load most recent month
+    const last = months[months.length - 1];
+    const lastChip = chipsEl.querySelector(`[data-month="${last.value}"]`);
+    lastChip.classList.add('chip-active');
+    lastChip.textContent = last.label + ' ×';
+    loadMonth(last.value, last.label);
+
+  } catch(e) {
+    document.getElementById('state-loading').textContent = 'Error: ' + e.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

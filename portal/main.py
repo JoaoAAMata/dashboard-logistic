@@ -748,7 +748,8 @@ async def noos_sales(request: Request, success: str = "", error: str = ""):
         page_icon="📈",
         success=success, error=error,
     )
-    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx})
+    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx,
+                                                              "dashboard_url": "/static/dashboards/noos_sales.html"})
 
 
 @app.post("/noos-sales/upload")
@@ -769,6 +770,20 @@ async def noos_upload(request: Request, file: UploadFile = File(...)):
         f.write(content)
     month_name = dict(_MONTHS)[month]
     return RedirectResponse(f"/noos-sales?success={month_name}+uploaded+successfully", status_code=302)
+
+
+@app.get("/noos-sales/available-months")
+async def noos_available_months(request: Request):
+    from fastapi.responses import JSONResponse
+    s = get_session(request)
+    if not s:
+        return JSONResponse({"error": "Not authenticated"}, status_code=401)
+    months = []
+    for val, label in _MONTHS:
+        path = os.path.join(_DATA_DIR, f"noos_sales_2026_{val}.xlsx")
+        if os.path.exists(path):
+            months.append({"value": val, "label": f"{label} 2026"})
+    return JSONResponse(months)
 
 
 @app.get("/noos-sales/download/{month}")
