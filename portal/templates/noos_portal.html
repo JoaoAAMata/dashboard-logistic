@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}NOOS Sales 2026 — Sacoor Logistics{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>📈 NOOS Sales 2026</h1>
+    <p class="text-muted">Upload full NOOS sales data — all years in one file</p>
+  </div>
+  <div style="display:flex;gap:.6rem;align-items:center">
+    <a href="{{ dashboard_url }}" class="btn btn-primary">📊 View Dashboard →</a>
+    <a href="/home" class="btn btn-secondary">← Home</a>
+  </div>
+</div>
+
+{% if session.is_admin %}
+<div class="card" style="margin-bottom:1.5rem;padding:1.1rem 1.25rem">
+  <div style="font-weight:700;margin-bottom:.75rem;font-size:.95rem">⬆ Upload NOOS Sales File</div>
+  <p class="text-sm text-muted" style="margin-bottom:.75rem">Upload a single Excel (.xlsx) file containing ALL NOOS sales data (2024 onwards). This replaces any previously uploaded file.</p>
+  <form method="post" action="/noos-sales/upload" enctype="multipart/form-data">
+    <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:.3rem;flex:1;min-width:220px">
+        <label style="font-size:.78rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">File (.xlsx)</label>
+        <input type="file" name="file" accept=".xlsx,.xls" required
+               style="padding:.4rem .6rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem;background:#fff"/>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload & Replace</button>
+    </div>
+  </form>
+  {% if success %}<div class="alert alert-success" style="margin-top:.75rem;margin-bottom:0">{{ success }}</div>{% endif %}
+  {% if error   %}<div class="alert alert-error"   style="margin-top:.75rem;margin-bottom:0">{{ error }}</div>{% endif %}
+</div>
+{% endif %}
+
+{% if file_info %}
+<div class="card" style="padding:1rem 1.25rem">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+    <div>
+      <div style="font-weight:700;font-size:.9rem;margin-bottom:.2rem">✅ NOOS Sales Data Available</div>
+      <div class="text-sm text-muted">Last upload: <strong>{{ file_info.updated }}</strong> · {{ file_info.size_mb }} MB</div>
+    </div>
+    <a href="{{ dashboard_url }}" class="btn btn-primary">📊 Open Dashboard →</a>
+  </div>
+</div>
+{% else %}
+<div class="empty-state"><p>No NOOS sales data uploaded yet. {% if session.is_admin %}Use the form above to upload.{% endif %}</p></div>
+{% endif %}
+{% endblock %}

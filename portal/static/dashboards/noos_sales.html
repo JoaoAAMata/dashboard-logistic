@@ -3,648 +3,832 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NOOS Sales 2026</title>
+<title>SEA NOOS Sales Dashboard 2026</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh}
+:root{
+  --hdr:#1a2e20;
+  --hdr-tbl:#162820;
+  --bg:#f5f5f3;
+  --surface:#fff;
+  --border:rgba(0,0,0,.09);
+  --border2:rgba(0,0,0,.16);
+  --text:#1a1a18;
+  --muted:#6b6b66;
+  --orange:#c88a00;
+  --green:#1a7a00;
+  --red:#c02020;
+  --subtotal:#e8f5ee;
+  --radius:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
 
-/* ── Topbar ── */
-.topbar{background:#fff;border-bottom:1px solid rgba(0,0,0,.08);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:100}
-.topbar-left{display:flex;align-items:center;gap:14px}
-.back-btn{font-size:.82rem;font-weight:600;color:#185FA5;text-decoration:none;padding:.3rem .7rem;border:1px solid #c7d6ff;border-radius:6px;background:#f0f4ff;white-space:nowrap}
-.back-btn:hover{background:#e0eaff}
-.topbar-title{font-size:15px;font-weight:700}
-.topbar-sub{font-size:11px;color:#9a9a94;margin-top:1px}
-
-/* ── Brand + View tabs ── */
-.tabs{display:flex;gap:6px;flex-wrap:wrap}
-.tab-btn{font-size:.75rem;font-weight:600;padding:.3rem .75rem;border-radius:99px;border:1px solid #e5e7eb;background:#f9fafb;color:#6b7280;cursor:pointer;transition:all .15s}
-.tab-btn:hover{background:#f0f4ff;border-color:#c7d6ff;color:#185FA5}
-.tab-active{background:#1a1a18!important;border-color:#1a1a18!important;color:#fff!important}
+/* ── Header bar ── */
+.hdr{background:var(--hdr);color:#fff;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:200}
+.hdr-left{display:flex;flex-direction:column;gap:2px}
+.hdr-title{font-size:15px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.hdr-sub{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.hdr-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.date-badge{font-size:11px;background:rgba(255,255,255,.12);padding:4px 10px;border-radius:99px;color:rgba(255,255,255,.8)}
+.hdr-btn{font-size:11px;font-weight:600;padding:6px 14px;border-radius:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;text-decoration:none;transition:background .15s;white-space:nowrap}
+.hdr-btn:hover{background:rgba(255,255,255,.2)}
 
 /* ── Main ── */
-.main{max-width:1200px;margin:0 auto;padding:24px 20px}
+.main{max-width:1500px;margin:0 auto;padding:22px 20px;display:flex;flex-direction:column;gap:20px}
 
-/* ── Month chips ── */
-.section-label{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#9a9a94;margin-bottom:8px}
-.month-chip{font-size:.78rem;font-weight:600;padding:.3rem .85rem;border-radius:99px;border:1px solid #e5e7eb;background:#fff;color:#6b7280;cursor:pointer;transition:all .15s}
-.month-chip:hover{border-color:#c7d6ff;color:#185FA5}
-.chip-active{background:#1a3a8f!important;border-color:#1a3a8f!important;color:#fff!important}
+/* ── KPI row ── */
+.kpi-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.kpi-card{background:var(--surface);border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07);padding:20px 24px}
+.kpi-card.dark{background:var(--hdr);color:#fff}
+.kpi-label{font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.kpi-card.dark .kpi-label{color:rgba(255,255,255,.5)}
+.kpi-value{font-size:2.2rem;font-weight:800;line-height:1.1}
+.kpi-sub{font-size:.78rem;font-weight:600;margin-top:6px}
+.kpi-sub.orange{color:var(--orange)}
+.kpi-sub.green{color:var(--green)}
+.kpi-card.dark .kpi-sub.green{color:#4fd080}
 
-/* ── KPI bar ── */
-.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
-.kpi-card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:1rem 1.25rem}
-.kpi-label{font-size:.7rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a9a94;margin-bottom:.35rem}
-.kpi-value{font-size:1.5rem;font-weight:800;color:#1a1a18}
-.kpi-sub{font-size:.72rem;color:#9a9a94;margin-top:.2rem}
+/* ── Section header ── */
+.sec-hdr{font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#999;margin-bottom:10px}
 
-/* ── Card ── */
-.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);padding:1.25rem 1.5rem;margin-bottom:1.25rem}
-.card-title{font-size:.78rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9a9a94;margin-bottom:1rem;padding-bottom:.6rem;border-bottom:1px solid #f0f0ee;display:flex;align-items:center;justify-content:space-between}
+/* ── Tables general ── */
+.tbl-wrap{overflow-x:auto;border-radius:var(--radius);box-shadow:0 1px 6px rgba(0,0,0,.07)}
+table{width:100%;border-collapse:collapse;background:var(--surface);font-size:.8rem}
+thead th{background:var(--hdr-tbl);color:#fff;padding:8px 10px;text-align:right;font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08)}
+thead th:first-child{text-align:left;min-width:140px}
+thead th.center{text-align:center}
+tbody td{padding:7px 10px;border-bottom:.5px solid var(--border);text-align:right;white-space:nowrap;border-right:.5px solid rgba(0,0,0,.05)}
+tbody td:first-child{text-align:left;font-weight:500;border-right:1px solid rgba(0,0,0,.08)}
+tbody tr:hover{background:#fafaf8}
+tr.bold td{font-weight:700}
+tr.subtotal{background:var(--subtotal)}
+tr.subtotal td{font-weight:700}
+tr.grand-total td{background:var(--hdr);color:#fff;font-weight:700}
+tr.orange-row td{color:var(--orange);font-weight:600}
+tr.green-row td{color:var(--green);font-weight:600}
 
-/* ── Table ── */
-.data-table{width:100%;border-collapse:collapse;font-size:.83rem}
-.data-table th{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#9a9a94;padding:.55rem .85rem;border-bottom:2px solid #f0f0ee;text-align:right;white-space:nowrap;cursor:pointer;user-select:none}
-.data-table th:first-child,.data-table th:nth-child(2){text-align:left}
-.data-table th:hover{color:#1a1a18}
-.data-table td{padding:.5rem .85rem;border-bottom:1px solid #f5f5f3;text-align:right;white-space:nowrap}
-.data-table td:first-child,.data-table td:nth-child(2){text-align:left}
-.data-table tbody tr:hover{background:#fafafa}
-.data-table tr:last-child td{border-bottom:none}
-.total-row td{font-weight:800;border-top:2px solid #1a1a18;background:#fafaf8}
+/* ── Span header rows ── */
+thead tr.span-hdr th{background:#0f1e14;font-size:.7rem;text-align:center;padding:6px 4px;border-right:1px solid rgba(255,255,255,.1)}
+thead tr.span-hdr th:first-child{text-align:left}
+thead tr.week-hdr th{font-size:.65rem;padding:5px 6px}
 
-/* ── View panels ── */
-.view-panel{display:none}
-.view-panel.active{display:block}
+/* ── Type badges ── */
+.badge-sac{display:inline-block;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:4px;background:#fff3e0;color:#c88a00}
+.badge-out{display:inline-block;font-size:.65rem;font-weight:700;padding:1px 6px;border-radius:4px;background:#e0f5ee;color:#0f7a55}
 
-/* ── Chart ── */
-.chart-wrap{position:relative;height:320px}
+/* ── Positive / negative ── */
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+.na{color:#bbb}
 
-/* ── States ── */
-.empty-state{text-align:center;padding:3rem;color:#9a9a94;font-size:.9rem}
-.spinner{display:inline-block;width:20px;height:20px;border:2px solid #e5e7eb;border-top-color:#1a1a18;border-radius:50%;animation:spin .7s linear infinite;margin-right:8px;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
+/* ── Loading / error states ── */
+#loading-msg{padding:40px;text-align:center;color:var(--muted)}
+#error-msg{padding:40px;text-align:center;color:var(--red);display:none}
 
-/* ── Sort indicator ── */
-.sort-asc::after{content:' ↑'}
-.sort-desc::after{content:' ↓'}
-
-/* Brand pills in header */
-.pill-b{display:inline-block;font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:99px;background:#E6F1FB;color:#185FA5}
-.pill-o{display:inline-block;font-size:.68rem;font-weight:700;padding:.15rem .5rem;border-radius:99px;background:#EAF3DE;color:#3B6D11}
-
-@media(max-width:700px){
-  .topbar{flex-direction:column;align-items:flex-start}
-  .kpi-row{grid-template-columns:1fr 1fr}
-  .data-table{font-size:.75rem}
-}
+/* ── Responsive ── */
+@media(max-width:700px){.kpi-row{grid-template-columns:1fr}.hdr{padding:12px 16px}.main{padding:14px 10px}}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="topbar-left">
-    <a href="/noos-sales" class="back-btn">← Back</a>
-    <div>
-      <div class="topbar-title">NOOS Sales 2026</div>
-      <div class="topbar-sub">Malaysia · Brothers · Outlet</div>
-    </div>
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-left">
+    <div class="hdr-title">SEA NOOS SALES DASHBOARD 2026</div>
+    <div class="hdr-sub">Year-to-date performance overview</div>
   </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-    <!-- Brand filter -->
-    <div class="tabs" id="brand-tabs">
-      <button class="tab-btn tab-active" data-brand="all">All</button>
-      <button class="tab-btn" data-brand="Brothers">Brothers</button>
-      <button class="tab-btn" data-brand="Outlet">Outlet</button>
-    </div>
-    <!-- View selector -->
-    <div class="tabs" id="view-tabs" style="border-left:1px solid #e5e7eb;padding-left:10px">
-      <button class="tab-btn tab-active" data-view="weekly">Weekly</button>
-      <button class="tab-btn" data-view="family">Family</button>
-      <button class="tab-btn" data-view="styles">Styles</button>
-      <button class="tab-btn" data-view="stock">Stock Top 20</button>
-    </div>
+  <div class="hdr-right">
+    <span class="date-badge" id="date-badge"></span>
+    <a class="hdr-btn" href="/reports">← Hub</a>
+    <button class="hdr-btn" onclick="restoreTotals()">⟳ Restore Totals</button>
   </div>
 </div>
 
-<div class="main">
-
-  <div id="state-loading" class="empty-state">
-    <span class="spinner"></span> Loading available months…
-  </div>
-
-  <div id="state-empty" class="empty-state" style="display:none">
-    No NOOS sales files uploaded yet.<br>
-    <a href="/noos-sales" style="color:#185FA5;font-weight:600">Go to NOOS Sales to upload files →</a>
-  </div>
-
-  <!-- Month selector -->
-  <div id="months-section" style="display:none;margin-bottom:1.5rem">
-    <div class="section-label">Loaded Months — click to load/unload</div>
-    <div id="month-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
-  </div>
-
-  <!-- KPI bar -->
-  <div class="kpi-row" id="kpi-row" style="display:none">
-    <div class="kpi-card">
-      <div class="kpi-label">Total Sales</div>
-      <div class="kpi-value" id="kpi-total">—</div>
-      <div class="kpi-sub" id="kpi-units">— units</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label"><span class="pill-b">Brothers</span></div>
-      <div class="kpi-value" id="kpi-brothers">—</div>
-      <div class="kpi-sub" id="kpi-brothers-units">— units</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label"><span class="pill-o">Outlet</span></div>
-      <div class="kpi-value" id="kpi-outlet">—</div>
-      <div class="kpi-sub" id="kpi-outlet-units">— units</div>
-    </div>
-  </div>
-
-  <!-- ── WEEKLY view ── -->
-  <div class="view-panel active" id="panel-weekly">
-    <div class="card">
-      <div class="card-title">
-        <span>Weekly Sales (2025–2026)</span>
-        <span style="font-size:.72rem;font-weight:400;color:#9a9a94">ISO 8601 · Week assigned to month of Thursday</span>
-      </div>
-      <div class="chart-wrap"><canvas id="chart-weekly"></canvas></div>
-    </div>
-    <div class="card" style="padding:0;overflow-x:auto">
-      <table class="data-table" id="tbl-weekly">
-        <thead>
-          <tr>
-            <th onclick="sortTable('tbl-weekly',0)">Year</th>
-            <th onclick="sortTable('tbl-weekly',1)">Week</th>
-            <th onclick="sortTable('tbl-weekly',2)">Month</th>
-            <th onclick="sortTable('tbl-weekly',3)">Brothers Sales</th>
-            <th onclick="sortTable('tbl-weekly',4)">Brothers Qty</th>
-            <th onclick="sortTable('tbl-weekly',5)">Outlet Sales</th>
-            <th onclick="sortTable('tbl-weekly',6)">Outlet Qty</th>
-            <th onclick="sortTable('tbl-weekly',7)">Total Sales</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-weekly"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── FAMILY view ── -->
-  <div class="view-panel" id="panel-family">
-    <div class="card" style="padding:0;overflow-x:auto">
-      <table class="data-table" id="tbl-family">
-        <thead>
-          <tr>
-            <th onclick="sortTable('tbl-family',0)">Family</th>
-            <th onclick="sortTable('tbl-family',1)">Design</th>
-            <th onclick="sortTable('tbl-family',2)">Brothers Sales</th>
-            <th onclick="sortTable('tbl-family',3)">Brothers Qty</th>
-            <th onclick="sortTable('tbl-family',4)">Outlet Sales</th>
-            <th onclick="sortTable('tbl-family',5)">Outlet Qty</th>
-            <th onclick="sortTable('tbl-family',6)">Total Sales</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-family"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── STYLES view ── -->
-  <div class="view-panel" id="panel-styles">
-    <div class="card" style="padding:0;overflow-x:auto">
-      <table class="data-table" id="tbl-styles">
-        <thead>
-          <tr>
-            <th onclick="sortTable('tbl-styles',0)">Style</th>
-            <th onclick="sortTable('tbl-styles',1)">Design</th>
-            <th onclick="sortTable('tbl-styles',2)">Color</th>
-            <th onclick="sortTable('tbl-styles',3)">Brand</th>
-            <th onclick="sortTable('tbl-styles',4)">Sales</th>
-            <th onclick="sortTable('tbl-styles',5)">Qty</th>
-          </tr>
-        </thead>
-        <tbody id="tbody-styles"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- ── STOCK Top 20 view ── -->
-  <div class="view-panel" id="panel-stock">
-    <div class="card">
-      <div class="card-title">
-        <span>Stock Top 20 References</span>
-        <span style="font-size:.72rem;font-weight:400;color:#9a9a94">From stock data — excl. DEF &amp; UNI stores · stock &gt; 0</span>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="data-table" id="tbl-stock">
-          <thead>
-            <tr>
-              <th>Rank</th>
-              <th>Reference</th>
-              <th>Style</th>
-              <th>Design</th>
-              <th>Color</th>
-              <th onclick="sortTable('tbl-stock',5)">Stock</th>
-            </tr>
-          </thead>
-          <tbody id="tbody-stock"></tbody>
-        </table>
-      </div>
-      <div id="stock-no-data" style="display:none;text-align:center;padding:2rem;color:#9a9a94;font-size:.85rem">
-        Upload stock data in Stock Reports to see Top 20.
-      </div>
-    </div>
-  </div>
-
+<div class="main" id="main-content">
+  <div id="loading-msg">Loading NOOS sales data…</div>
+  <div id="error-msg"></div>
 </div>
 
 <script>
-// ── Constants ─────────────────────────────────────────────────────────────────
-const YEARS_FILTER = [2025, 2026]; // for weekly + family views
+// ─────────────────────────────────────────────────────────────
+// Utilities
+// ─────────────────────────────────────────────────────────────
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+const MONTHS_FULL = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
 
-// ── State ─────────────────────────────────────────────────────────────────────
-let allRows     = [];   // all parsed rows from all loaded months
-let monthData   = {};   // {month: rows[]}
-let loadedOrder = [];
-let activeBrand = 'all';
-let activeView  = 'weekly';
-let weeklyChart = null;
-let sortState   = {}; // {tableId: {col, dir}}
-
-// ── Date helpers ──────────────────────────────────────────────────────────────
-function excelSerialToDate(serial) {
-  // Excel serial: 1 = Jan 1, 1900. Adjust for Excel's leap year bug (+1 offset after Feb 28 1900)
-  return new Date(Math.round((serial - 25569) * 86400 * 1000));
+function fmt(n){
+  if(n==null||isNaN(n)) return '—';
+  return n.toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+function fmtRM(n){
+  if(n==null||isNaN(n)||n===0) return '—';
+  return 'RM '+n.toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0});
+}
+function fmtPct(n){
+  if(n==null||isNaN(n)) return '—';
+  return (n*100).toFixed(1)+'%';
+}
+function fmtLfl(n){
+  if(n==null||isNaN(n)||!isFinite(n)) return '<span class="na">—</span>';
+  const pct = (n*100).toFixed(1)+'%';
+  if(n>0) return `<span class="pos">▲ ${pct}</span>`;
+  if(n<0) return `<span class="neg">▼ ${Math.abs(n*100).toFixed(1)}%</span>`;
+  return `<span class="na">0.0%</span>`;
+}
+function fmtLflText(n){
+  if(n==null||isNaN(n)||!isFinite(n)) return '—';
+  const pct = (n*100).toFixed(1)+'%';
+  if(n>0) return `▲ ${pct}`;
+  if(n<0) return `▼ ${Math.abs(n*100).toFixed(1)}%`;
+  return '0.0%';
 }
 
-function isoWeekYear(d) {
-  // Returns {year, week} per ISO 8601
+function excelSerialToDate(serial){
+  if(!serial||serial<40000) return null;
+  return new Date(Math.round((serial-25569)*86400000));
+}
+
+function isoWeekYear(d){
+  const date = new Date(d); date.setHours(0,0,0,0);
+  const thu = new Date(date); thu.setDate(date.getDate()+3-((date.getDay()+6)%7));
+  const yearStart = new Date(thu.getFullYear(),0,4);
+  return {
+    year: thu.getFullYear(),
+    week: 1+Math.round(((thu-yearStart)/86400000-3+((yearStart.getDay()+6)%7))/7)
+  };
+}
+
+function thursdayMonth(d){
   const date = new Date(d);
-  date.setHours(0, 0, 0, 0);
-  const thu = new Date(date);
-  thu.setDate(date.getDate() + 3 - ((date.getDay() + 6) % 7));
-  const yearStart = new Date(thu.getFullYear(), 0, 4);
-  const weekNum = 1 + Math.round(((thu - yearStart) / 86400000 - 3 + ((yearStart.getDay() + 6) % 7)) / 7);
-  return { year: thu.getFullYear(), week: weekNum };
+  const mon = new Date(date); mon.setDate(date.getDate()-((date.getDay()+6)%7));
+  const thu = new Date(mon); thu.setDate(mon.getDate()+3);
+  return thu.getMonth()+1; // 1-based
 }
 
-function thursdayMonth(d) {
-  // Month (1–12) of the Thursday in the ISO week
-  const date = new Date(d);
-  const monday = new Date(date);
-  monday.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-  const thu = new Date(monday);
-  thu.setDate(monday.getDate() + 3);
-  return thu.getMonth() + 1;
+function normalizeDesign(d){
+  if(!d) return d;
+  const s = d.trim();
+  if(/shirt/i.test(s)&&!/polo/i.test(s)) return 'Shirt Casual';
+  if(/chino.*trouser|trouser.*chino/i.test(s)) return 'Trousers Casual';
+  if(/bermuda/i.test(s)) return 'Shorts';
+  return s;
 }
 
-const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// ─────────────────────────────────────────────────────────────
+// Data loading
+// ─────────────────────────────────────────────────────────────
+let G = {}; // global data store for restoreTotals
 
-// ── Formatting ─────────────────────────────────────────────────────────────────
-function fmtSale(n) {
-  if (!n) return '—';
-  return 'RM ' + Number(n).toLocaleString('en-MY', {minimumFractionDigits:2, maximumFractionDigits:2});
-}
-function fmtN(n) { return Number(n || 0).toLocaleString(); }
+async function init(){
+  const badge = document.getElementById('date-badge');
+  if(badge) badge.textContent = new Date().toLocaleDateString('en-MY',{day:'2-digit',month:'short',year:'numeric'});
 
-// ── Classification ────────────────────────────────────────────────────────────
-function classifyBrand(type) {
-  return type === 'SACOOR' ? 'Brothers' : 'Outlet';
-}
-
-// ── Parse Excel ───────────────────────────────────────────────────────────────
-function parseRows(ab) {
-  const wb  = XLSX.read(ab, {type:'array', cellDates:false});
-  const ws  = wb.Sheets[wb.SheetNames[0]];
-  const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
-  const out = [];
-  for (const r of raw) {
-    const sale = Number(r['SALE'] || 0);
-    if (sale === 0) continue;                         // SALE = 0 → excluded
-
-    const dateSerial = Number(r['DATE'] || 0);
-    if (dateSerial < 40000) continue;                 // invalid date → excluded
-
-    const jsDate = excelSerialToDate(dateSerial);
-    const {year, week} = isoWeekYear(jsDate);
-    const month = thursdayMonth(jsDate);
-
-    const type   = String(r['TYPE'] || '').trim();
-    const brand  = classifyBrand(type);
-    const style  = String(r['STYLE']  || '').trim();
-    const design = String(r['DESIGN'] || '').trim();
-    const color  = String(r['COLOR']  || '').trim();
-    const family = String(r['FAMILY'] || '').trim();
-    const qtt    = Number(r['QTT'] || 0);
-
-    out.push({date:jsDate, year, week, month, brand, type, style, design, color, family, sale, qtt});
-  }
-  return out;
-}
-
-// ── Aggregation ───────────────────────────────────────────────────────────────
-function filteredRows() {
-  if (activeBrand === 'all') return allRows;
-  return allRows.filter(r => r.brand === activeBrand);
-}
-
-function buildWeekly() {
-  const rows = allRows.filter(r => YEARS_FILTER.includes(r.year));
-  const map = {};
-  for (const r of rows) {
-    const key = `${r.year}-W${String(r.week).padStart(2,'0')}`;
-    if (!map[key]) map[key] = {year:r.year, week:r.week, month:r.month, bSale:0, bQtt:0, oSale:0, oQtt:0};
-    if (r.brand === 'Brothers') { map[key].bSale += r.sale; map[key].bQtt += r.qtt; }
-    else                        { map[key].oSale += r.sale; map[key].oQtt += r.qtt; }
-  }
-  return Object.values(map).sort((a,b)=> a.year!==b.year ? a.year-b.year : a.week-b.week);
-}
-
-function buildFamily() {
-  const rows = allRows.filter(r => YEARS_FILTER.includes(r.year));
-  const map = {};
-  for (const r of rows) {
-    if (!map[r.family]) map[r.family] = {family:r.family, design:r.design, bSale:0, bQtt:0, oSale:0, oQtt:0};
-    if (r.brand === 'Brothers') { map[r.family].bSale += r.sale; map[r.family].bQtt += r.qtt; }
-    else                        { map[r.family].oSale += r.sale; map[r.family].oQtt += r.qtt; }
-  }
-  return Object.values(map).sort((a,b) => (b.bSale+b.oSale) - (a.bSale+a.oSale));
-}
-
-function buildStyles() {
-  const rows = filteredRows(); // all years
-  const map = {};
-  for (const r of rows) {
-    const key = r.style + '|' + r.color;
-    if (!map[key]) map[key] = {style:r.style, design:r.design, color:r.color, brand:r.brand, sale:0, qtt:0};
-    map[key].sale += r.sale; map[key].qtt += r.qtt;
-  }
-  return Object.values(map).sort((a,b) => b.sale - a.sale);
-}
-
-function buildStock() {
-  try {
-    const compressed = localStorage.getItem('logDash_raw');
-    if (!compressed) return [];
-    // Try LZString first, then plain JSON
-    let rows;
-    if (window.LZString) {
-      const s = LZString.decompressFromUTF16(compressed);
-      rows = JSON.parse(s);
-    } else {
-      rows = JSON.parse(compressed);
-    }
-    // Expand slim format: a=STORE,b=STORET,c=BRAND,d=TYPE,e=SEASON,f=DESIGN,g=STOCK,h=PVP,i=REF,j=COLOR,k=SIZE,l=STYLE
-    const expanded = rows.map(r => ({
-      STORE:r.a, STORET:r.b, BRAND:r.c, TYPE:r.d, SEASON:r.e,
-      DESIGN:r.f, STOCK:Number(r.g)||0, PVP:r.h, REF:r.i, COLOR:r.j, SIZE:r.k, STYLE:r.l||''
-    }));
-    // Exclude DEF and UNI stores, stock ≤ 0
-    const valid = expanded.filter(r => r.STOCK > 0 && !r.STORE.includes('DEF') && !r.STORE.includes('UNI'));
-    // Aggregate by REF
-    const refMap = {};
-    for (const r of valid) {
-      if (!refMap[r.REF]) refMap[r.REF] = {ref:r.REF, style:r.STYLE, design:r.DESIGN, color:r.COLOR, stock:0};
-      refMap[r.REF].stock += r.STOCK;
-    }
-    return Object.values(refMap).sort((a,b) => b.stock - a.stock).slice(0, 20);
-  } catch(e) {
-    return [];
-  }
-}
-
-// ── KPI update ────────────────────────────────────────────────────────────────
-function updateKPI() {
-  const rows = filteredRows();
-  const bSale = rows.filter(r=>r.brand==='Brothers').reduce((s,r)=>s+r.sale,0);
-  const oSale = rows.filter(r=>r.brand==='Outlet').reduce((s,r)=>s+r.sale,0);
-  const bQtt  = rows.filter(r=>r.brand==='Brothers').reduce((s,r)=>s+r.qtt,0);
-  const oQtt  = rows.filter(r=>r.brand==='Outlet').reduce((s,r)=>s+r.qtt,0);
-  document.getElementById('kpi-total').textContent   = fmtSale(bSale+oSale);
-  document.getElementById('kpi-units').textContent   = fmtN(bQtt+oQtt) + ' units';
-  document.getElementById('kpi-brothers').textContent = fmtSale(bSale);
-  document.getElementById('kpi-brothers-units').textContent = fmtN(bQtt) + ' units';
-  document.getElementById('kpi-outlet').textContent  = fmtSale(oSale);
-  document.getElementById('kpi-outlet-units').textContent  = fmtN(oQtt) + ' units';
-}
-
-// ── Render weekly chart ────────────────────────────────────────────────────────
-function renderWeekly() {
-  const data = buildWeekly();
-  const labels   = data.map(d => `${d.year} W${d.week}`);
-  const bSales   = data.map(d => d.bSale);
-  const oSales   = data.map(d => d.oSale);
-
-  if (weeklyChart) weeklyChart.destroy();
-  const ctx = document.getElementById('chart-weekly').getContext('2d');
-  weeklyChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'Brothers', data:bSales, backgroundColor:'#185FA5CC', borderRadius:3 },
-        { label:'Outlet',   data:oSales, backgroundColor:'#1D9E75CC', borderRadius:3 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{position:'top'}, tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: RM ${ctx.parsed.y.toLocaleString('en-MY',{minimumFractionDigits:2})}`}}},
-      scales:{ x:{ticks:{maxRotation:60,font:{size:10}}}, y:{ticks:{callback:v=>'RM '+v.toLocaleString('en-MY',{maximumFractionDigits:0})}}}
-    }
-  });
-
-  // Table
-  const tbody = document.getElementById('tbody-weekly');
-  tbody.innerHTML = '';
-  let totB=0, totBQ=0, totO=0, totOQ=0;
-  for (const d of data) {
-    totB+=d.bSale; totBQ+=d.bQtt; totO+=d.oSale; totOQ+=d.oQtt;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${d.year}</td><td>W${d.week}</td><td>${MONTH_NAMES[d.month-1]}</td>
-      <td>${fmtSale(d.bSale)}</td><td>${fmtN(d.bQtt)}</td>
-      <td>${fmtSale(d.oSale)}</td><td>${fmtN(d.oQtt)}</td>
-      <td style="font-weight:600">${fmtSale(d.bSale+d.oSale)}</td>`;
-    tbody.appendChild(tr);
-  }
-  const tot = document.createElement('tr'); tot.className='total-row';
-  tot.innerHTML = `<td colspan="3">Total</td><td>${fmtSale(totB)}</td><td>${fmtN(totBQ)}</td><td>${fmtSale(totO)}</td><td>${fmtN(totOQ)}</td><td>${fmtSale(totB+totO)}</td>`;
-  tbody.appendChild(tot);
-}
-
-// ── Render family ─────────────────────────────────────────────────────────────
-function renderFamily() {
-  const data = buildFamily();
-  const tbody = document.getElementById('tbody-family');
-  tbody.innerHTML = '';
-  let totB=0,totBQ=0,totO=0,totOQ=0;
-  for (const d of data) {
-    totB+=d.bSale; totBQ+=d.bQtt; totO+=d.oSale; totOQ+=d.oQtt;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-family:monospace;font-size:.78rem">${d.family}</td><td>${d.design}</td>
-      <td>${fmtSale(d.bSale)}</td><td>${fmtN(d.bQtt)}</td>
-      <td>${fmtSale(d.oSale)}</td><td>${fmtN(d.oQtt)}</td>
-      <td style="font-weight:600">${fmtSale(d.bSale+d.oSale)}</td>`;
-    tbody.appendChild(tr);
-  }
-  const tot = document.createElement('tr'); tot.className='total-row';
-  tot.innerHTML = `<td colspan="2">Total</td><td>${fmtSale(totB)}</td><td>${fmtN(totBQ)}</td><td>${fmtSale(totO)}</td><td>${fmtN(totOQ)}</td><td>${fmtSale(totB+totO)}</td>`;
-  tbody.appendChild(tot);
-}
-
-// ── Render styles ─────────────────────────────────────────────────────────────
-function renderStyles() {
-  const data = buildStyles().slice(0, 200); // top 200
-  const tbody = document.getElementById('tbody-styles');
-  tbody.innerHTML = '';
-  for (const d of data) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="font-family:monospace;font-size:.78rem">${d.style}</td><td>${d.design}</td><td>${d.color}</td>
-      <td><span class="${d.brand==='Brothers'?'pill-b':'pill-o'}">${d.brand}</span></td>
-      <td>${fmtSale(d.sale)}</td><td>${fmtN(d.qtt)}</td>`;
-    tbody.appendChild(tr);
-  }
-}
-
-// ── Render stock ──────────────────────────────────────────────────────────────
-function renderStock() {
-  const data = buildStock();
-  const tbody = document.getElementById('tbody-stock');
-  const noData = document.getElementById('stock-no-data');
-  tbody.innerHTML = '';
-  if (!data.length) { noData.style.display=''; return; }
-  noData.style.display = 'none';
-  data.forEach((d,i) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td style="color:#9a9a94">${i+1}</td>
-      <td style="font-family:monospace;font-size:.78rem">${d.ref}</td>
-      <td style="font-family:monospace;font-size:.78rem">${d.style}</td>
-      <td>${d.design}</td><td>${d.color}</td>
-      <td style="font-weight:700">${fmtN(d.stock)}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-// ── Render active view ────────────────────────────────────────────────────────
-function render() {
-  if (!allRows.length) return;
-  updateKPI();
-  if (activeView === 'weekly') renderWeekly();
-  else if (activeView === 'family') renderFamily();
-  else if (activeView === 'styles') renderStyles();
-  else if (activeView === 'stock') renderStock();
-}
-
-// ── Table sort ────────────────────────────────────────────────────────────────
-function sortTable(id, col) {
-  const table = document.getElementById(id);
-  const tbody = table.querySelector('tbody');
-  const rows  = Array.from(tbody.querySelectorAll('tr:not(.total-row)'));
-  const state = sortState[id] || {col:-1, dir:1};
-  const dir   = (state.col === col) ? -state.dir : -1; // default descending
-  sortState[id] = {col, dir};
-
-  rows.sort((a,b) => {
-    const av = a.cells[col]?.textContent.replace(/[^0-9.\-]/g,'') || '';
-    const bv = b.cells[col]?.textContent.replace(/[^0-9.\-]/g,'') || '';
-    const an = parseFloat(av), bn = parseFloat(bv);
-    if (!isNaN(an) && !isNaN(bn)) return dir * (an - bn);
-    return dir * av.localeCompare(bv);
-  });
-
-  // Update header indicators
-  table.querySelectorAll('th').forEach((th,i) => {
-    th.classList.remove('sort-asc','sort-desc');
-    if (i===col) th.classList.add(dir===1?'sort-asc':'sort-desc');
-  });
-
-  const totalRow = tbody.querySelector('.total-row');
-  rows.forEach(r => tbody.appendChild(r));
-  if (totalRow) tbody.appendChild(totalRow);
-}
-
-// ── Load month ────────────────────────────────────────────────────────────────
-async function loadMonth(val, label) {
-  if (monthData[val]) {
-    if (!loadedOrder.includes(val)) loadedOrder.push(val);
-    rebuildAll(); render(); return;
-  }
-  try {
-    const r = await fetch(`/noos-sales/download/${val}`, {credentials:'include'});
-    if (!r.ok) throw new Error(r.statusText);
-    const ab = await r.arrayBuffer();
-    monthData[val] = parseRows(ab);
-    if (!loadedOrder.includes(val)) loadedOrder.push(val);
-    rebuildAll(); render();
-  } catch(e) { alert(`Failed to load ${label}: ${e.message}`); }
-}
-
-function unloadMonth(val) {
-  delete monthData[val];
-  loadedOrder = loadedOrder.filter(m => m !== val);
-  rebuildAll(); render();
-}
-
-function rebuildAll() {
-  allRows = [];
-  for (const m of loadedOrder) allRows.push(...(monthData[m] || []));
-  document.getElementById('kpi-row').style.display = allRows.length ? '' : 'none';
-}
-
-// ── Tab listeners ─────────────────────────────────────────────────────────────
-document.getElementById('brand-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  document.querySelectorAll('#brand-tabs .tab-btn').forEach(b => b.classList.remove('tab-active'));
-  btn.classList.add('tab-active');
-  activeBrand = btn.dataset.brand;
-  render();
-});
-
-document.getElementById('view-tabs').addEventListener('click', e => {
-  const btn = e.target.closest('.tab-btn');
-  if (!btn) return;
-  document.querySelectorAll('#view-tabs .tab-btn').forEach(b => b.classList.remove('tab-active'));
-  btn.classList.add('tab-active');
-  activeView = btn.dataset.view;
-  document.querySelectorAll('.view-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('panel-' + activeView).classList.add('active');
-  render();
-});
-
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function init() {
-  try {
-    const r = await fetch('/noos-sales/available-months', {credentials:'include'});
-    if (!r.ok) { window.location.href = '/login'; return; }
-    const months = await r.json();
-
-    document.getElementById('state-loading').style.display = 'none';
-
-    if (!months.length) {
-      document.getElementById('state-empty').style.display = '';
+  try{
+    const resp = await fetch('/noos-sales/data');
+    if(resp.status===401){ window.location.href='/login'; return; }
+    if(!resp.ok){
+      showError('No NOOS sales data uploaded yet. Please ask an admin to upload the file.');
       return;
     }
-
-    document.getElementById('months-section').style.display = '';
-    const chipsEl = document.getElementById('month-chips');
-
-    for (const m of months) {
-      const chip = document.createElement('button');
-      chip.className = 'month-chip';
-      chip.dataset.month = m.value;
-      chip.dataset.label = m.label;
-      chip.textContent = m.label;
-      chip.addEventListener('click', () => {
-        if (chip.classList.contains('chip-active')) {
-          chip.classList.remove('chip-active');
-          chip.textContent = m.label;
-          unloadMonth(m.value);
-        } else {
-          chip.classList.add('chip-active');
-          chip.textContent = m.label + ' ×';
-          loadMonth(m.value, m.label);
-        }
-      });
-      chipsEl.appendChild(chip);
-    }
-
-    // Auto-load most recent month
-    const last = months[months.length - 1];
-    const lastChip = chipsEl.querySelector(`[data-month="${last.value}"]`);
-    lastChip.classList.add('chip-active');
-    lastChip.textContent = last.label + ' ×';
-    loadMonth(last.value, last.label);
-
-  } catch(e) {
-    document.getElementById('state-loading').textContent = 'Error: ' + e.message;
+    const buf = await resp.arrayBuffer();
+    const wb = XLSX.read(buf,{type:'array',cellDates:false});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const raw = XLSX.utils.sheet_to_json(ws,{defval:null});
+    processData(raw);
+  } catch(e){
+    showError('Failed to load NOOS data: '+e.message);
   }
 }
 
-init();
+function showError(msg){
+  document.getElementById('loading-msg').style.display='none';
+  const el = document.getElementById('error-msg');
+  el.style.display='block';
+  el.textContent=msg;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Data processing
+// ─────────────────────────────────────────────────────────────
+function processData(raw){
+  // Parse rows
+  const rows = [];
+  for(const r of raw){
+    const serial = Number(r['DATE']||r['Date']||r['date']||0);
+    const d = excelSerialToDate(serial);
+    if(!d) continue;
+    const sale = Number(r['SALE']||r['Sale']||r['sale']||0);
+    if(sale===0) continue;
+
+    const year = Number(r['YEAR']||r['Year']||r['year']||d.getFullYear());
+    const month = d.getMonth()+1; // 1-based
+    const type = String(r['TYPE']||r['Type']||r['type']||'').trim().toUpperCase();
+    const style = String(r['STYLE']||r['Style']||r['style']||'').trim();
+    const design = String(r['DESIGN']||r['Design']||r['design']||'').trim();
+    const color = String(r['COLOR']||r['Color']||r['color']||'').trim();
+    const qtt = Number(r['QTT']||r['Qty']||r['qty']||r['QTY']||0);
+    const family = String(r['FAMILY']||r['Family']||r['family']||'').trim();
+    const season = String(r['SEASON']||r['Season']||r['season']||'').trim().toUpperCase();
+    const policy = String(r['POLICY']||r['Policy']||r['policy']||'').trim();
+    const storet = String(r['STORET']||r['Storet']||r['storet']||'').trim();
+
+    const {week: isoWeek, year: isoYear} = isoWeekYear(d);
+    const wkMonth = thursdayMonth(d);
+
+    const isSacoor = type==='SACOOR';
+    const isNoos = season==='NOOS';
+
+    rows.push({d,year,month,type,style,design,color,sale,qtt,family,season,policy,storet,
+               isoWeek,isoYear,wkMonth,isSacoor,isNoos,serial});
+  }
+
+  G.rows = rows;
+  buildDashboard(rows);
+}
+
+function buildDashboard(rows){
+  document.getElementById('loading-msg').style.display='none';
+
+  const CY = 2026;
+  const PY = 2025;
+
+  // ── Monthly aggregation ──────────────────────────────────
+  // For each year+month: noosSac, noosOut, noosTotal, allTotal
+  function aggMonth(yr, mo, key){
+    return rows.filter(r=>r.year===yr&&r.month===mo&&(key==='all'||r.isNoos))
+               .reduce((s,r)=>{ return s + (key==='sac'?(!r.isSacoor?0:r.sale):key==='out'?(r.isSacoor?0:r.sale):r.sale); },0);
+  }
+  function allMonth(yr,mo){
+    return rows.filter(r=>r.year===yr&&r.month===mo).reduce((s,r)=>s+r.sale,0);
+  }
+
+  const monthly = {};
+  for(let m=1;m<=12;m++){
+    monthly[m] = {
+      cy_sac: aggMonth(CY,m,'sac'),
+      cy_out: aggMonth(CY,m,'out'),
+      cy_noos: aggMonth(CY,m,'noos'),
+      cy_all: allMonth(CY,m),
+      py_noos: aggMonth(PY,m,'noos'),
+      py_all: allMonth(PY,m),
+    };
+    monthly[m].cy_noos = monthly[m].cy_sac + monthly[m].cy_out;
+    monthly[m].noos_pct = monthly[m].cy_all>0 ? monthly[m].cy_noos/monthly[m].cy_all : null;
+    monthly[m].lfl = (monthly[m].cy_noos>0||monthly[m].py_noos>0)&&monthly[m].py_noos>0
+                     ? (monthly[m].cy_noos/monthly[m].py_noos)-1 : null;
+  }
+
+  // Which months have 2026 data?
+  const hasData = m => monthly[m].cy_all > 0;
+  const activeMonths = MONTHS.map((_,i)=>i+1).filter(hasData);
+
+  // YTD calcs
+  const ytd_noos_cy = activeMonths.reduce((s,m)=>s+monthly[m].cy_noos,0);
+  const ytd_noos_py = activeMonths.reduce((s,m)=>s+monthly[m].py_noos,0);
+  const ytd_all_cy  = activeMonths.reduce((s,m)=>s+monthly[m].cy_all,0);
+  const ytd_noos_pct = ytd_all_cy>0 ? ytd_noos_cy/ytd_all_cy : null;
+  const ytd_lfl = ytd_noos_py>0 ? (ytd_noos_cy/ytd_noos_py)-1 : null;
+
+  // AVG LFL (average of months that have both py and cy data)
+  const lflVals = activeMonths.map(m=>monthly[m].lfl).filter(v=>v!=null&&isFinite(v));
+  const avgLfl = lflVals.length>0 ? lflVals.reduce((s,v)=>s+v,0)/lflVals.length : null;
+
+  G.monthly = monthly;
+  G.activeMonths = activeMonths;
+
+  // ── Weekly aggregation ──────────────────────────────────
+  // Group 2026 and 2025 data by isoYear+isoWeek, store wkMonth
+  const wkMap = {}; // key: `${year}_${week}` -> {noos_cy, noos_py, all_cy, all_py, month}
+  // Collect all weeks in 2026 that appear
+  const weeks2026 = new Set();
+  rows.forEach(r=>{
+    if(r.isoYear===CY){ weeks2026.add(r.isoWeek); }
+  });
+
+  // Build week data
+  const weekData = {}; // week -> {noos_cy, all_cy, noos_py, all_py, month}
+  rows.forEach(r=>{
+    if(r.isoYear===CY){
+      const w = r.isoWeek;
+      if(!weekData[w]) weekData[w]={noos_cy:0,all_cy:0,noos_py:0,all_py:0,month:r.wkMonth};
+      if(r.isNoos) weekData[w].noos_cy+=r.sale;
+      weekData[w].all_cy+=r.sale;
+    }
+    if(r.isoYear===PY){
+      // same ISO week -> compare
+      const w = r.isoWeek;
+      if(!weekData[w]) weekData[w]={noos_cy:0,all_cy:0,noos_py:0,all_py:0,month:r.wkMonth};
+      if(r.isNoos) weekData[w].noos_py+=r.sale;
+      weekData[w].all_py+=r.sale;
+    }
+  });
+
+  // Group weeks by month (using 2026 Thursday rule)
+  const weeksByMonth = {}; // month -> sorted array of week numbers
+  Object.entries(weekData).forEach(([w,d])=>{
+    const mo = d.month;
+    if(!weeksByMonth[mo]) weeksByMonth[mo]=[];
+    if(!weeksByMonth[mo].includes(Number(w))) weeksByMonth[mo].push(Number(w));
+  });
+  Object.values(weeksByMonth).forEach(arr=>arr.sort((a,b)=>a-b));
+
+  // ── Style aggregation (2026 NOOS) ──────────────────────
+  const styleMap = {};
+  rows.forEach(r=>{
+    if(!r.isNoos) return;
+    const key = `${r.style}|${r.design}|${r.color}|${r.type}`;
+    if(!styleMap[key]) styleMap[key]={style:r.style,design:r.design,color:r.color,type:r.type,
+                                       sale_cy:0,qty_cy:0,sale_all:0,qty_all:0,isSacoor:r.isSacoor};
+    styleMap[key].sale_all+=r.sale;
+    styleMap[key].qty_all+=r.qtt;
+    if(r.year===CY){ styleMap[key].sale_cy+=r.sale; styleMap[key].qty_cy+=r.qtt; }
+  });
+  const styleArr = Object.values(styleMap);
+  const top20cy = [...styleArr].filter(s=>s.sale_cy>0).sort((a,b)=>b.sale_cy-a.sale_cy).slice(0,20);
+  const top20all = [...styleArr].sort((a,b)=>b.sale_all-a.sale_all).slice(0,20);
+  const totalNoos_cy = styleArr.reduce((s,r)=>s+r.sale_cy,0);
+  const totalNoos_all = styleArr.reduce((s,r)=>s+r.sale_all,0);
+
+  // ── Family / Design aggregation ─────────────────────────
+  // Group by type (SACOOR/Outlet) + normalizeDesign, for each month
+  const famMap = {}; // `${brand}|${normDesign}` -> {isSacoor, months: {m: sale}}
+  rows.forEach(r=>{
+    if(!r.isNoos||r.year!==CY) return;
+    const nd = normalizeDesign(r.design)||r.design;
+    const key = `${r.isSacoor?'SAC':'OUT'}|${nd}`;
+    if(!famMap[key]) famMap[key]={isSacoor:r.isSacoor,design:nd,months:{}};
+    famMap[key].months[r.month] = (famMap[key].months[r.month]||0)+r.sale;
+  });
+  // Also include Dec 2025 for Jan MoM comparison
+  rows.forEach(r=>{
+    if(!r.isNoos||r.year!==PY||r.month!==12) return;
+    const nd = normalizeDesign(r.design)||r.design;
+    const key = `${r.isSacoor?'SAC':'OUT'}|${nd}`;
+    if(!famMap[key]) famMap[key]={isSacoor:r.isSacoor,design:nd,months:{}};
+    famMap[key].months[0] = (famMap[key].months[0]||0)+r.sale; // 0 = Dec prev year
+  });
+
+  // ── Render ───────────────────────────────────────────────
+  renderAll({monthly,activeMonths,ytd_noos_cy,ytd_all_cy,ytd_noos_pct,ytd_lfl,avgLfl,
+             weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,famMap,CY,PY});
+}
+
+function renderAll(ctx){
+  const {monthly,activeMonths,ytd_noos_cy,ytd_all_cy,ytd_noos_pct,ytd_lfl,avgLfl,
+         weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,famMap,CY,PY} = ctx;
+
+  const main = document.getElementById('main-content');
+  main.innerHTML = '';
+
+  // ── KPI Row ─────────────────────────────────────────────
+  const kpiDiv = el('div',{class:'kpi-row'});
+
+  const kpi1 = el('div',{class:'kpi-card'});
+  kpi1.innerHTML = `<div class="kpi-label">Total Sales YTD</div>
+    <div class="kpi-value">RM ${ytd_all_cy.toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+    <div class="kpi-sub orange">NOOS %: ${ytd_noos_pct!=null?fmtPct(ytd_noos_pct):'—'}</div>`;
+
+  const kpi2 = el('div',{class:'kpi-card dark'});
+  kpi2.innerHTML = `<div class="kpi-label">NOOS Sales YTD</div>
+    <div class="kpi-value">RM ${ytd_noos_cy.toLocaleString('en-MY',{minimumFractionDigits:0,maximumFractionDigits:0})}</div>
+    <div class="kpi-sub green">AVG LFL GROWTH: ${avgLfl!=null?fmtLflText(avgLfl):'—'}</div>`;
+
+  kpiDiv.appendChild(kpi1);
+  kpiDiv.appendChild(kpi2);
+  main.appendChild(kpiDiv);
+
+  // ── Monthly Breakdown ────────────────────────────────────
+  main.appendChild(elText('div','MONTHLY BREAKDOWN',{class:'sec-hdr'}));
+  const wrap1 = el('div',{class:'tbl-wrap'});
+  wrap1.appendChild(buildMonthlyTable(monthly,activeMonths,CY,PY));
+  main.appendChild(wrap1);
+
+  // ── Weekly Detail ────────────────────────────────────────
+  main.appendChild(elText('div','WEEKLY DETAIL',{class:'sec-hdr'}));
+  const wrap2 = el('div',{class:'tbl-wrap'});
+  wrap2.appendChild(buildWeeklyTable(weekData,weeksByMonth,CY,PY));
+  main.appendChild(wrap2);
+
+  // ── Top 20 Styles 2026 YTD ───────────────────────────────
+  main.appendChild(elText('div','TOP 20 STYLES — 2026 YTD',{class:'sec-hdr'}));
+  const wrap3 = el('div',{class:'tbl-wrap'});
+  wrap3.appendChild(buildStyleTable(top20cy,totalNoos_cy,true,CY));
+  main.appendChild(wrap3);
+
+  // ── Top 20 Styles All Time ───────────────────────────────
+  main.appendChild(elText('div','TOP 20 STYLES — ALL TIME',{class:'sec-hdr'}));
+  const wrap4 = el('div',{class:'tbl-wrap'});
+  wrap4.appendChild(buildStyleTable(top20all,totalNoos_all,false,CY));
+  main.appendChild(wrap4);
+
+  // ── Monthly by Family ────────────────────────────────────
+  main.appendChild(elText('div','MONTHLY SALES BY FAMILY (NOOS 2026)',{class:'sec-hdr'}));
+  const wrap5 = el('div',{class:'tbl-wrap'});
+  wrap5.appendChild(buildFamilyTable(famMap,activeMonths));
+  main.appendChild(wrap5);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Monthly Breakdown Table
+// ─────────────────────────────────────────────────────────────
+function buildMonthlyTable(monthly,activeMonths,CY,PY){
+  const t = el('table');
+
+  // Header
+  const thead = el('thead');
+  const hr = el('tr');
+  th(hr,'',{style:'min-width:160px'});
+  MONTHS.forEach(m=>th(hr,m));
+  th(hr,'YTD',{style:'font-weight:800;background:#0f1e14'});
+  thead.appendChild(hr);
+  t.appendChild(thead);
+
+  const tbody = el('tbody');
+
+  // Rows data
+  const ytd_sac = activeMonths.reduce((s,m)=>s+monthly[m].cy_sac,0);
+  const ytd_out = activeMonths.reduce((s,m)=>s+monthly[m].cy_out,0);
+  const ytd_noos = activeMonths.reduce((s,m)=>s+monthly[m].cy_noos,0);
+  const ytd_all  = activeMonths.reduce((s,m)=>s+monthly[m].cy_all,0);
+  const ytd_lfl  = (() => {
+    const py = activeMonths.reduce((s,m)=>s+monthly[m].py_noos,0);
+    return py>0?(ytd_noos/py)-1:null;
+  })();
+  const ytd_pct  = ytd_all>0?ytd_noos/ytd_all:null;
+  const lflMonths= activeMonths.map(m=>monthly[m].lfl).filter(v=>v!=null&&isFinite(v));
+  // avgLfl not shown in table – YTD LFL shown instead
+
+  function rowData(key,ytdVal,cls){
+    const tr2 = el('tr',cls?{class:cls}:{});
+    for(let m=1;m<=12;m++){
+      const v = monthly[m][key];
+      const hasDat = monthly[m].cy_all>0;
+      if(key==='noos_pct'){
+        td(tr2, hasDat&&v!=null ? `<span style="color:var(--orange)">${fmtPct(v)}</span>` : '<span class="na">—</span>', {innerHTML:true});
+      } else if(key==='lfl'){
+        td(tr2, hasDat ? fmtLfl(v) : '<span class="na">—</span>', {innerHTML:true});
+      } else {
+        td(tr2, hasDat&&v ? fmt(v) : (hasDat?'0':'—'));
+      }
+    }
+    // YTD
+    if(key==='noos_pct'){
+      td(tr2, ytd_pct!=null?`<span style="color:var(--orange);font-weight:800">${fmtPct(ytd_pct)}</span>`:'—',{innerHTML:true});
+    } else if(key==='lfl'){
+      td(tr2, fmtLfl(ytd_lfl),{innerHTML:true});
+    } else {
+      td(tr2, fmt(ytdVal),{style:'font-weight:800'});
+    }
+    return tr2;
+  }
+
+  // Sales Brothers (NOOS, SACOOR)
+  const r1 = rowData('cy_sac',ytd_sac);
+  td(r1,'Sales Brothers (NOOS)',{},'prepend');
+  tbody.appendChild(r1);
+
+  // Sales Outlet
+  const r2 = rowData('cy_out',ytd_out);
+  td(r2,'Sales Outlet (NOOS)',{},'prepend');
+  tbody.appendChild(r2);
+
+  // NOOS Sales (bold)
+  const r3 = rowData('cy_noos',ytd_noos,'bold');
+  td(r3,'NOOS Sales',{style:'font-weight:800'},'prepend');
+  tbody.appendChild(r3);
+
+  // Total Sales
+  const r4 = rowData('cy_all',ytd_all);
+  td(r4,'Total Sales',{},'prepend');
+  tbody.appendChild(r4);
+
+  // NOOS %
+  const r5 = rowData('noos_pct',null,'orange-row');
+  td(r5,'NOOS %',{style:'font-weight:700'},'prepend');
+  tbody.appendChild(r5);
+
+  // LFL Growth
+  const r6 = rowData('lfl',null,'green-row');
+  td(r6,'LFL Growth',{style:'font-weight:700'},'prepend');
+  tbody.appendChild(r6);
+
+  t.appendChild(tbody);
+  return t;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Weekly Detail Table
+// ─────────────────────────────────────────────────────────────
+function buildWeeklyTable(weekData,weeksByMonth,CY,PY){
+  const t = el('table');
+  const thead = el('thead');
+
+  // Collect all months that have week data, sorted
+  const months = Object.keys(weeksByMonth).map(Number).sort((a,b)=>a-b);
+  if(months.length===0){
+    const p = el('p'); p.textContent='No weekly data available.'; return p;
+  }
+
+  // Row 1: Month names spanning their weeks
+  const spanRow = el('tr',{class:'span-hdr'});
+  th(spanRow,'',{style:'text-align:left'});
+  months.forEach(m=>{
+    const weeks = weeksByMonth[m]||[];
+    const thEl = el('th');
+    thEl.setAttribute('colspan',weeks.length);
+    thEl.textContent = MONTHS_FULL[m-1];
+    spanRow.appendChild(thEl);
+  });
+  thead.appendChild(spanRow);
+
+  // Row 2: Week numbers
+  const wkRow = el('tr',{class:'week-hdr'});
+  th(wkRow,'',{style:'text-align:left'});
+  months.forEach(m=>{
+    const weeks = weeksByMonth[m]||[];
+    weeks.forEach(w=>{
+      const thEl = el('th');
+      thEl.textContent = `W${w}`;
+      wkRow.appendChild(thEl);
+    });
+  });
+  thead.appendChild(wkRow);
+  t.appendChild(thead);
+
+  const tbody = el('tbody');
+
+  // Helper: get all weeks in order
+  const allWeeks = months.flatMap(m=>weeksByMonth[m]||[]);
+
+  function wkRow2(label,valFn,cls){
+    const tr2 = el('tr',cls?{class:cls}:{});
+    const lbl = el('td'); lbl.textContent=label; lbl.style.fontWeight='600';
+    tr2.appendChild(lbl);
+    allWeeks.forEach(w=>{
+      const d = weekData[w];
+      const tdEl = el('td');
+      tdEl.innerHTML = d ? valFn(d,w) : '<span class="na">—</span>';
+      tr2.appendChild(tdEl);
+    });
+    return tr2;
+  }
+
+  tbody.appendChild(wkRow2('NOOS Sales',d=>d.all_cy>0?fmt(d.noos_cy):'<span class="na">—</span>','bold'));
+  tbody.appendChild(wkRow2('Total Sales',d=>d.all_cy>0?fmt(d.all_cy):'<span class="na">—</span>'));
+  tbody.appendChild(wkRow2('NOOS %',d=>{
+    if(!d.all_cy) return '<span class="na">—</span>';
+    const p = d.noos_cy/d.all_cy;
+    return `<span style="color:var(--orange)">${fmtPct(p)}</span>`;
+  },'orange-row'));
+  tbody.appendChild(wkRow2('LFL Growth',d=>{
+    if(!d.all_cy) return '<span class="na">—</span>';
+    if(!d.noos_py) return '<span class="na">—</span>';
+    const lfl = (d.noos_cy/d.noos_py)-1;
+    return fmtLfl(lfl);
+  },'green-row'));
+
+  t.appendChild(tbody);
+  return t;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Style Tables (Top 20)
+// ─────────────────────────────────────────────────────────────
+function buildStyleTable(styles,totalNoos,isCY,CY){
+  // Load stock from localStorage
+  let stockMap = {};
+  try{
+    const raw = localStorage.getItem('logDash_raw');
+    if(raw){
+      const parsed = JSON.parse(raw);
+      (parsed||[]).forEach(s=>{
+        if(s.l&&s.g!=null&&s.g!=='DEF'&&s.g!=='UNI'){
+          stockMap[String(s.l).trim().toUpperCase()] = Number(s.g)||0;
+        }
+      });
+    }
+  }catch(e){}
+
+  const saleKey = isCY?'sale_cy':'sale_all';
+  const qtyKey  = isCY?'qty_cy':'qty_all';
+
+  const t = el('table');
+  const thead = el('thead');
+  const hr = el('tr');
+  ['#','TYPE','STYLE','DESIGN','COLOR','SALES (RM)','QTY','NOOS %','AVG SALE','STOCK'].forEach((h,i)=>{
+    const thEl = el('th');
+    thEl.textContent = h;
+    if(i<=1) thEl.style.textAlign='left';
+    hr.appendChild(thEl);
+  });
+  thead.appendChild(hr);
+  t.appendChild(thead);
+
+  const tbody = el('tbody');
+  let totalSale=0,totalQty=0,totalStock=0;
+
+  styles.forEach((s,i)=>{
+    const sale = s[saleKey]||0;
+    const qty  = s[qtyKey]||0;
+    const avgSale = qty>0?sale/qty:0;
+    const noosPct = totalNoos>0?sale/totalNoos:0;
+    const stock = stockMap[s.style.trim().toUpperCase()]||0;
+    totalSale+=sale; totalQty+=qty; totalStock+=stock;
+
+    const tr2 = el('tr');
+    tdLeft(tr2,String(i+1));
+    const typeTd = el('td');
+    typeTd.innerHTML = s.isSacoor
+      ? '<span class="badge-sac">Brothers</span>'
+      : '<span class="badge-out">Outlet</span>';
+    tr2.appendChild(typeTd);
+    tdLeft(tr2,s.style);
+    tdLeft(tr2,s.design);
+    tdLeft(tr2,s.color);
+    td(tr2,fmtRM(sale));
+    td(tr2,fmt(qty));
+    td(tr2,`<span style="color:var(--orange)">${fmtPct(noosPct)}</span>`,{innerHTML:true});
+    td(tr2,fmtRM(avgSale));
+    td(tr2,stock>0?fmt(stock):'—');
+    tbody.appendChild(tr2);
+  });
+
+  // Total row
+  const tot = el('tr',{class:'grand-total'});
+  tdLeft(tot,'');
+  tdLeft(tot,'');
+  tdLeft(tot,'TOTAL');
+  tdLeft(tot,'');
+  tdLeft(tot,'');
+  td(tot,fmtRM(totalSale));
+  td(tot,fmt(totalQty));
+  td(tot,'100%');
+  td(tot,'');
+  td(tot,totalStock>0?fmt(totalStock):'—');
+  tbody.appendChild(tot);
+
+  t.appendChild(tbody);
+  return t;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Family Table
+// ─────────────────────────────────────────────────────────────
+function buildFamilyTable(famMap,activeMonths){
+  const t = el('table');
+  const thead = el('thead');
+  const hr = el('tr');
+  th(hr,'DESIGN',{style:'text-align:left;min-width:160px'});
+  activeMonths.forEach(m=>{
+    const prevLabel = m===1?'DEC':MONTHS[m-2];
+    th(hr,`${MONTHS[m-1]}<br><span style="font-size:.6rem;font-weight:400;color:rgba(255,255,255,.5)">vs ${prevLabel}</span>`,{innerHTML:true});
+  });
+  th(hr,'YTD');
+  thead.appendChild(hr);
+  t.appendChild(thead);
+
+  const tbody = el('tbody');
+
+  // Separate outlet and sacoor entries
+  const entries = Object.values(famMap);
+  const outEntries = entries.filter(e=>!e.isSacoor).sort((a,b)=>a.design.localeCompare(b.design));
+  const sacEntries = entries.filter(e=>e.isSacoor).sort((a,b)=>a.design.localeCompare(b.design));
+
+  function addSectionHeader(label){
+    const tr2 = el('tr',{class:'subtotal'});
+    const td2 = el('td');
+    td2.setAttribute('colspan',activeMonths.length+2);
+    td2.style.fontWeight='800';
+    td2.style.fontSize='.72rem';
+    td2.style.letterSpacing='.07em';
+    td2.style.textTransform='uppercase';
+    td2.style.color='#2a6040';
+    td2.textContent=label;
+    tr2.appendChild(td2);
+    tbody.appendChild(tr2);
+  }
+
+  function subtotals(ents){
+    const sub = {};
+    ents.forEach(e=>{
+      Object.entries(e.months).forEach(([m,v])=>{ sub[m]=(sub[m]||0)+v; });
+    });
+    return sub;
+  }
+
+  function addRows(ents,label){
+    const sub = subtotals(ents);
+    addSectionHeader(label);
+    ents.forEach(e=>addDesignRow(e));
+    // subtotal
+    const str = el('tr',{class:'subtotal'});
+    tdLeft(str,`${label} Subtotal`,{style:'font-size:.78rem'});
+    let ytd=0;
+    activeMonths.forEach(m=>{
+      const v=sub[m]||0; const prev=sub[m===1?0:m-1]||0;
+      ytd+=v;
+      td(str,momCell(v,prev),{innerHTML:true});
+    });
+    td(str,fmtRM(ytd));
+    tbody.appendChild(str);
+  }
+
+  function addDesignRow(e){
+    const tr2 = el('tr');
+    tdLeft(tr2,e.design);
+    let ytd=0;
+    activeMonths.forEach(m=>{
+      const v=e.months[m]||0;
+      const prev=e.months[m===1?0:m-1]||0;
+      ytd+=v;
+      td(tr2,momCell(v,prev),{innerHTML:true});
+    });
+    td(tr2,fmtRM(ytd));
+    tbody.appendChild(tr2);
+  }
+
+  function momCell(curr,prev){
+    if(!curr&&!prev) return '<span class="na">—</span>';
+    const val = fmtRM(curr);
+    if(!prev||prev===0) return val;
+    const chg = (curr-prev)/prev;
+    const arrow = chg>0?`<span class="pos"> ▲${(chg*100).toFixed(1)}%</span>`:
+                  chg<0?`<span class="neg"> ▼${(Math.abs(chg)*100).toFixed(1)}%</span>`:
+                  '<span class="na"> —</span>';
+    return val+arrow;
+  }
+
+  // All entries grand totals
+  const allSub = subtotals(entries);
+
+  addRows(outEntries,'Outlet');
+  addRows(sacEntries,'Sacoor');
+
+  // Grand total
+  const gtr = el('tr',{class:'grand-total'});
+  tdLeft(gtr,'GRAND TOTAL');
+  let grandYtd=0;
+  activeMonths.forEach(m=>{
+    const v=allSub[m]||0; const prev=allSub[m===1?0:m-1]||0;
+    grandYtd+=v;
+    td(gtr,momCell(v,prev),{innerHTML:true});
+  });
+  td(gtr,fmtRM(grandYtd));
+  tbody.appendChild(gtr);
+
+  t.appendChild(tbody);
+  return t;
+}
+
+// ─────────────────────────────────────────────────────────────
+// DOM helpers
+// ─────────────────────────────────────────────────────────────
+function el(tag,attrs){
+  const e = document.createElement(tag);
+  if(attrs) Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='class') e.className=v;
+    else if(k==='innerHTML') e.innerHTML=v;
+    else e.setAttribute(k,v);
+  });
+  return e;
+}
+function elText(tag,text,attrs){
+  const e = el(tag,attrs);
+  e.textContent=text;
+  return e;
+}
+function th(parent,content,attrs,prepend){
+  const e = el('th',attrs);
+  if(attrs&&attrs.innerHTML) e.innerHTML=content; else e.textContent=content;
+  if(prepend) parent.insertBefore(e,parent.firstChild); else parent.appendChild(e);
+  return e;
+}
+function td(parent,content,attrs,prepend){
+  const e = el('td');
+  if(attrs&&attrs.innerHTML) e.innerHTML=content; else e.textContent=content;
+  if(attrs) Object.entries(attrs).forEach(([k,v])=>{
+    if(k==='innerHTML') return;
+    if(k==='class') e.className=v; else e.setAttribute(k,v);
+  });
+  if(prepend) parent.insertBefore(e,parent.firstChild); else parent.appendChild(e);
+  return e;
+}
+function tdLeft(parent,content,attrs,prepend){
+  return td(parent,content,{...(attrs||{}),style:'text-align:left;font-weight:500;'+(attrs&&attrs.style?attrs.style:'')},prepend);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Restore Totals
+// ─────────────────────────────────────────────────────────────
+function restoreTotals(){
+  if(G.rows){ buildDashboard(G.rows); }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>

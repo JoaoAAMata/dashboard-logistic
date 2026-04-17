@@ -732,75 +732,58 @@ async def inventory_available_months(request: Request):
     return JSONResponse(months)
 
 
-# ── NOOS Sales 2026 ───────────────────────────────────────────────────────────
+# ── NOOS Sales (single file) ──────────────────────────────────────────────────
+
+def _noos_path():
+    return os.path.join(_DATA_DIR, "noos_sales_all.xlsx")
 
 @app.get("/noos-sales", response_class=HTMLResponse)
 async def noos_sales(request: Request, success: str = "", error: str = ""):
     s = get_session(request)
     if not s:
         return RedirectResponse("/login")
-    ctx = _monthly_context(
-        prefix="noos_sales_2026",
-        upload_url="/noos-sales/upload",
-        download_url="/noos-sales/download",
-        page_title="NOOS Sales 2026",
-        page_subtitle="Monthly NOOS sales reports · Upload by logistics, download by all stores",
-        page_icon="📈",
-        success=success, error=error,
-    )
-    return templates.TemplateResponse("monthly_files.html", {"request": request, "session": s, **ctx,
-                                                              "dashboard_url": "/static/dashboards/noos_sales.html"})
-
+    path = _noos_path()
+    file_info = None
+    if os.path.exists(path):
+        stat = os.stat(path)
+        import datetime as _dt2
+        file_info = {
+            "size_mb": round(stat.st_size / 1024 / 1024, 1),
+            "updated": _dt2.datetime.fromtimestamp(stat.st_mtime).strftime("%d %b %Y %H:%M")
+        }
+    return templates.TemplateResponse("noos_portal.html", {
+        "request": request, "session": s,
+        "file_info": file_info, "success": success, "error": error,
+        "dashboard_url": "/static/dashboards/noos_sales.html"
+    })
 
 @app.post("/noos-sales/upload")
 async def noos_upload(request: Request, file: UploadFile = File(...)):
     s = get_session(request)
     if not s or not s["is_admin"]:
         return RedirectResponse("/login")
-    form = await request.form()
-    month = str(form.get("month", ""))
-    if month not in [m[0] for m in _MONTHS]:
-        return RedirectResponse("/noos-sales?error=Invalid+month", status_code=302)
     ext = os.path.splitext(file.filename or "")[1].lower()
     if ext not in (".xlsx", ".xls"):
         return RedirectResponse("/noos-sales?error=Only+.xlsx+accepted", status_code=302)
     content = await file.read()
-    dest = os.path.join(_DATA_DIR, f"noos_sales_2026_{month}.xlsx")
-    with open(dest, "wb") as f:
+    with open(_noos_path(), "wb") as f:
         f.write(content)
-    month_name = dict(_MONTHS)[month]
-    return RedirectResponse(f"/noos-sales?success={month_name}+uploaded+successfully", status_code=302)
+    return RedirectResponse("/noos-sales?success=NOOS+sales+data+uploaded+successfully", status_code=302)
 
-
-@app.get("/noos-sales/available-months")
-async def noos_available_months(request: Request):
-    from fastapi.responses import JSONResponse
+@app.get("/noos-sales/data")
+async def noos_data(request: Request):
     s = get_session(request)
     if not s:
-        return JSONResponse({"error": "Not authenticated"}, status_code=401)
-    months = []
-    for val, label in _MONTHS:
-        path = os.path.join(_DATA_DIR, f"noos_sales_2026_{val}.xlsx")
-        if os.path.exists(path):
-            months.append({"value": val, "label": f"{label} 2026"})
-    return JSONResponse(months)
-
-
-@app.get("/noos-sales/download/{month}")
-async def noos_download(request: Request, month: str):
-    s = get_session(request)
-    if not s:
-        return RedirectResponse("/login")
-    path = os.path.join(_DATA_DIR, f"noos_sales_2026_{month}.xlsx")
+        return Response(status_code=401)
+    path = _noos_path()
     if not os.path.exists(path):
-        return RedirectResponse("/noos-sales")
+        return Response(status_code=404)
     with open(path, "rb") as f:
         data = f.read()
-    month_name = dict(_MONTHS).get(month, month)
     return Response(
         content=data,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f'attachment; filename="NOOS_Sales_2026_{month_name}.xlsx"'},
+        headers={"Content-Disposition": 'inline; filename="noos_sales.xlsx"'}
     )
 
 
