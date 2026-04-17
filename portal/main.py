@@ -592,15 +592,19 @@ async def store_stock_delivery(request: Request):
     s = get_session(request)
     if not s or s["is_admin"] or s.get("is_transporter"):
         return RedirectResponse("/login")
-    from datetime import date as _date
-    today = _date.today().isoformat()
+    from datetime import date as _date, timedelta as _td
+    today = _date.today()
+    today_str = today.isoformat()
+    # Monday of current week
+    week_start = (today - _td(days=today.weekday())).isoformat()
+    week_num   = today.isocalendar()[1]
     raw = database.get_deliveries_for_store(s["store_code"])
     upcoming = 0
     deliveries = []
     for d in raw:
         dd = d.get("delivery_date", "")
-        d["is_today"] = dd == today
-        d["is_past"]  = dd < today if dd else False
+        d["is_today"] = dd == today_str
+        d["is_past"]  = dd < today_str if dd else False
         if not d["is_past"]:
             upcoming += 1
         try:
@@ -614,6 +618,9 @@ async def store_stock_delivery(request: Request):
         "deliveries": deliveries,
         "upcoming_count": upcoming,
         "upload_info": upload_info,
+        "week_start": week_start,
+        "week_num": week_num,
+        "today": today_str,
     })
 
 

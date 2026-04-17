@@ -26,11 +26,11 @@
 <!-- Summary strip -->
 <div class="del-summary">
   <div class="del-sum-item">
-    <span class="del-sum-val">{{ deliveries | length }}</span>
-    <span class="del-sum-lbl">Total Shipments</span>
+    <span class="del-sum-val" id="sum-shown">{{ deliveries | length }}</span>
+    <span class="del-sum-lbl">Shipments shown</span>
   </div>
   <div class="del-sum-item">
-    <span class="del-sum-val">{{ deliveries | sum(attribute='total_ctn_int') }}</span>
+    <span class="del-sum-val" id="sum-ctn">{{ deliveries | sum(attribute='total_ctn_int') }}</span>
     <span class="del-sum-lbl">Total Cartons</span>
   </div>
   <div class="del-sum-item">
@@ -45,8 +45,35 @@
   {% endif %}
 </div>
 
-<div class="card" style="padding:0;overflow-x:auto;margin-top:1.25rem">
-  <table class="table" style="min-width:780px;width:100%">
+<!-- Filter bar -->
+<div class="card filter-bar" style="margin-top:1.25rem;padding:.85rem 1.1rem">
+  <div style="display:flex;gap:.75rem;align-items:flex-end;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:.25rem;flex:2;min-width:200px">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">🔍 Order No</label>
+      <input type="text" id="f-order" placeholder="Search order number…" oninput="applyFilters()"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.25rem">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">From</label>
+      <input type="date" id="f-from" onchange="applyFilters()" value="{{ week_start }}"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.25rem">
+      <label style="font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)">To</label>
+      <input type="date" id="f-to" onchange="applyFilters()"
+             style="padding:.4rem .7rem;border:1px solid var(--grey-bd);border-radius:var(--radius);font-size:.85rem"/>
+    </div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <button class="btn btn-sm btn-secondary" onclick="setWeek(0)">This week</button>
+      <button class="btn btn-sm btn-secondary" onclick="setWeek(1)">Next week</button>
+      <button class="btn btn-sm btn-secondary" onclick="clearFilters()">All</button>
+    </div>
+  </div>
+  <div id="filter-label" style="margin-top:.5rem;font-size:.8rem;color:var(--muted)"></div>
+</div>
+
+<div class="card" style="padding:0;overflow-x:auto">
+  <table class="table" id="del-table" style="min-width:780px;width:100%">
     <thead>
       <tr>
         <th>Order / Rtn No</th>
@@ -60,9 +87,12 @@
         <th>Cargo Ready</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="del-body">
       {% for d in deliveries %}
-      <tr class="{% if d.is_past %}del-past{% elif d.is_today %}del-today{% endif %}">
+      <tr class="{% if d.is_past %}del-past{% elif d.is_today %}del-today{% endif %}"
+          data-order="{{ d.order_rtn_no | lower }}"
+          data-date="{{ d.delivery_date }}"
+          data-ctn="{{ d.total_ctn_int }}">
         <td><strong>{{ d.order_rtn_no }}</strong></td>
         <td style="white-space:nowrap;font-weight:700;color:{% if d.is_today %}#1a5c1a{% elif d.is_past %}var(--muted){% else %}#1a5c1a{% endif %}">
           {{ d.delivery_date }}
@@ -79,48 +109,94 @@
       {% endfor %}
     </tbody>
   </table>
+  <div id="empty-msg" style="display:none;text-align:center;padding:2rem;color:var(--muted)">
+    No deliveries match the current filter.
+  </div>
 </div>
 {% endif %}
 
 <style>
-/* Summary strip */
-.del-summary {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
+.del-summary { display:flex; gap:1rem; flex-wrap:wrap; }
 .del-sum-item {
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 1rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: .2rem;
-  min-width: 130px;
-  border-top: 3px solid var(--dark);
+  background:#fff; border-radius:var(--radius); box-shadow:var(--shadow);
+  padding:1rem 1.5rem; display:flex; flex-direction:column;
+  align-items:center; gap:.2rem; min-width:130px; border-top:3px solid var(--dark);
 }
-.del-sum-updated { border-top-color: #1976d2; }
-.del-sum-val { font-size: 1.6rem; font-weight: 800; color: var(--dark); line-height: 1; }
-.del-sum-lbl { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-
-/* Row states */
-.del-past td { color: var(--muted); }
-.del-today   { background: #f0fdf4; }
-
-/* Today badge */
+.del-sum-updated { border-top-color:#1976d2; }
+.del-sum-val { font-size:1.6rem; font-weight:800; color:var(--dark); line-height:1; }
+.del-sum-lbl { font-size:.7rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+.del-past td  { color:var(--muted); }
+.del-today    { background:#f0fdf4; }
 .del-badge-today {
-  display: inline-block;
-  background: #1a5c1a;
-  color: #fff;
-  font-size: .62rem;
-  font-weight: 700;
-  padding: .1rem .4rem;
-  border-radius: 99px;
-  margin-left: .35rem;
-  vertical-align: middle;
-  letter-spacing: .05em;
+  display:inline-block; background:#1a5c1a; color:#fff;
+  font-size:.62rem; font-weight:700; padding:.1rem .4rem;
+  border-radius:99px; margin-left:.35rem; vertical-align:middle; letter-spacing:.05em;
 }
 </style>
+
+<script>
+const TODAY      = '{{ today }}';
+const WEEK_START = '{{ week_start }}';
+const WEEK_NUM   = {{ week_num }};
+
+// Get Monday/Sunday of week offset from today
+function weekRange(offset) {
+  const d    = new Date(TODAY);
+  const day  = d.getDay() === 0 ? 6 : d.getDay() - 1; // Mon=0
+  const mon  = new Date(d); mon.setDate(d.getDate() - day + offset * 7);
+  const sun  = new Date(mon); sun.setDate(mon.getDate() + 6);
+  return [mon.toISOString().slice(0,10), sun.toISOString().slice(0,10)];
+}
+
+function setWeek(offset) {
+  const [from, to] = weekRange(offset);
+  document.getElementById('f-from').value = from;
+  document.getElementById('f-to').value   = to;
+  document.getElementById('f-order').value = '';
+  applyFilters();
+}
+
+function clearFilters() {
+  document.getElementById('f-from').value  = '';
+  document.getElementById('f-to').value    = '';
+  document.getElementById('f-order').value = '';
+  applyFilters();
+}
+
+function applyFilters() {
+  const order  = document.getElementById('f-order').value.toLowerCase().trim();
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+  const rows   = document.querySelectorAll('#del-body tr');
+
+  let shown = 0, totalCtn = 0;
+  rows.forEach(r => {
+    const rOrder = r.dataset.order || '';
+    const rDate  = r.dataset.date  || '';
+    const rCtn   = parseInt(r.dataset.ctn) || 0;
+    const ok = (!order || rOrder.includes(order))
+            && (!from  || rDate >= from)
+            && (!to    || rDate <= to);
+    r.style.display = ok ? '' : 'none';
+    if (ok) { shown++; totalCtn += rCtn; }
+  });
+
+  document.getElementById('sum-shown').textContent = shown;
+  document.getElementById('sum-ctn').textContent   = totalCtn;
+  document.getElementById('empty-msg').style.display = shown === 0 ? '' : 'none';
+
+  // Update label
+  let lbl = '';
+  if (from && to)  lbl = `Showing deliveries from <strong>${from}</strong> to <strong>${to}</strong>`;
+  else if (from)   lbl = `Showing deliveries from <strong>${from}</strong> onwards`;
+  else if (to)     lbl = `Showing deliveries up to <strong>${to}</strong>`;
+  document.getElementById('filter-label').innerHTML = lbl;
+}
+
+// On load: default to current week onwards (no end date)
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('f-from').value = WEEK_START;
+  applyFilters();
+});
+</script>
 {% endblock %}
