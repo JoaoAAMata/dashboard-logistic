@@ -550,12 +550,61 @@ async def edit_transfer(request: Request, tid: int):
 
 # ── Stock Reports (dashboards) ────────────────────────────────────────────────
 
+# Stock data file lives next to the DB on the Railway volume
+_STOCK_DATA_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(database.DB_PATH)), "stock_data.xlsx"
+)
+
+
 @app.get("/reports", response_class=HTMLResponse)
-async def reports_hub(request: Request):
+async def reports_hub(request: Request, success: str = "", error: str = ""):
     s = get_session(request)
     if not s:
         return RedirectResponse("/login")
-    return templates.TemplateResponse("reports.html", {"request": request, "session": s})
+    import datetime as _dt
+    stock_updated = None
+    if os.path.exists(_STOCK_DATA_PATH):
+        ts = os.path.getmtime(_STOCK_DATA_PATH)
+        stock_updated = _dt.datetime.fromtimestamp(ts).strftime("%d %b %Y  %H:%M")
+    return templates.TemplateResponse("reports.html", {
+        "request": request, "session": s,
+        "stock_updated": stock_updated,
+        "success": success, "error": error,
+    })
+
+
+@app.post("/reports/upload-stock")
+async def upload_stock_data(request: Request, file: UploadFile = File(...)):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    filename = file.filename or ""
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in (".xlsx", ".xls"):
+        return RedirectResponse("/reports?error=Only+.xlsx+files+accepted", status_code=302)
+    content = await file.read()
+    with open(_STOCK_DATA_PATH, "wb") as f:
+        f.write(content)
+    return RedirectResponse("/reports?success=Stock+data+updated+successfully", status_code=302)
+
+
+@app.get("/reports/stock-data")
+async def serve_stock_data(request: Request):
+    """Serve the stored stock Excel file to dashboards."""
+    s = get_session(request)
+    if not s:
+        from fastapi.responses import Response as _Resp
+        return _Resp(status_code=401)
+    if not os.path.exists(_STOCK_DATA_PATH):
+        from fastapi.responses import Response as _Resp
+        return _Resp(status_code=404)
+    with open(_STOCK_DATA_PATH, "rb") as f:
+        data = f.read()
+    return Response(
+        content=data,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 # ── Stock Delivery ────────────────────────────────────────────────────────────

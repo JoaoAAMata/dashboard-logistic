@@ -373,5 +373,18 @@ setupChips('f-brand','brand');setupChips('f-gen','gen');
   if(hasRaw){const r=loadRawRows();if(r)processRows(r.rows,r.fname);else renderAll();}
   else renderAll();
 })();
+
+// ── Auto-load stock data from server ─────────────────────────────────────────
+(async function _serverLoad(){
+  try {
+    const r = await fetch('/reports/stock-data', {cache:'no-cache'});
+    if (!r.ok) return; // no file yet — INIT_DATA is used
+    const ab = await r.arrayBuffer();
+    const wb = XLSX.read(ab, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    processRows(rows, 'stock_data.xlsx');
+  } catch(e) { /* use embedded INIT_DATA */ }
+})();
 </script>
 </body></html>
