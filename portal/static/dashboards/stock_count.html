@@ -215,6 +215,9 @@ function fmtQty(n) {
   return '0';
 }
 
+// ── Exclusion rules ────────────────────────────────────────────────────────────
+const DESIGN_EXCLUDE = new Set(['Badge','Package','Package Premium']);
+
 // ── Parse uploaded Excel ───────────────────────────────────────────────────────
 function parseNum(v) {
   if (v === null || v === undefined || v === '') return 0;
@@ -224,26 +227,35 @@ function parseNum(v) {
   return parseFloat(s.replace(/[,\s]/g,'')) || 0;
 }
 
-function colFind(row, ...names) {
-  for (const n of names) {
-    if (row[n] !== undefined && row[n] !== '') return row[n];
-  }
-  return '';
-}
-
 function parseRows(ab) {
   const wb  = XLSX.read(ab, {type:'array'});
   const ws  = wb.Sheets[wb.SheetNames[0]];
   const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
   const out = [];
   for (const r of raw) {
-    const wh = String(colFind(r,'WH','wh','Location','LOCATION','Store Code','STORE CODE','StoreCode')).trim();
+    // ── Filter: PROCESS must be "Inventory"
+    const process = String(r['PROCESS'] || r['Process'] || r['process'] || '').trim();
+    if (process !== 'Inventory') continue;
+
+    // ── Filter: exclude Badge, Package, Package Premium
+    const design = String(r['DESIGN'] || r['Design'] || r['design'] || '').trim();
+    if (DESIGN_EXCLUDE.has(design)) continue;
+
+    // ── WH (required)
+    const wh = String(r['WH'] || r['wh'] || '').trim();
     if (!wh || wh === '0') continue;
-    const store = String(colFind(r,'Store','STORE','Store Name','STORE NAME','Location Name','StoreName') || WH_STORE[wh] || wh).trim();
-    const brand = String(colFind(r,'Brand','BRAND','brand','Type','TYPE') || WH_BRAND[wh] || '').trim();
+
+    // ── Brand from WH map (required)
+    const brand = WH_BRAND[wh];
     if (!brand) continue;
-    const cost = parseNum(colFind(r,'Cost','COST','cost','Cost Variance','COST VARIANCE','Variance Cost','CostVariance'));
-    const qty  = parseNum(colFind(r,'Qty','QTY','qty','Variance','VARIANCE','Qty Variance','QTY VARIANCE','QtyVariance','Units'));
+
+    // ── Store name from WH map
+    const store = WH_STORE[wh] || wh;
+
+    // ── Values
+    const cost = parseNum(r['COST'] || r['Cost'] || r['cost'] || 0);
+    const qty  = parseNum(r['QTT']  || r['Qtt']  || r['qtt']  || r['QTY'] || r['Qty'] || 0);
+
     out.push({wh, store, brand, cost, qty});
   }
   return out;
