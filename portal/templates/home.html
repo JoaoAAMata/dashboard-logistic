@@ -37,6 +37,22 @@
     </div>
   </div>
 
+  <!-- ── STOCK REPORTS ──────────────────────────────── admin only ─────── -->
+  {% if session.is_admin %}
+  <div class="hub-card hub-card-active">
+    <div class="hub-icon">📊</div>
+    <div class="hub-body">
+      <h2 class="hub-title">Stock Reports</h2>
+      <p class="hub-desc">
+        Units in stock, season &amp; category breakdown, top 10 references and stock detail by store.
+      </p>
+    </div>
+    <div class="hub-footer">
+      <a href="/reports" class="btn btn-primary">Open Reports →</a>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── 2. PACKAGING REQUEST ─────────────────── stores + admin only ─────── -->
   {% if not session.is_transporter %}
   <div class="hub-card hub-card-soon">

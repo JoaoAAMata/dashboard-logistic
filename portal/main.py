@@ -548,6 +548,16 @@ async def edit_transfer(request: Request, tid: int):
     return RedirectResponse(f"/logistics/transfer/{tid}?edited=1", status_code=302)
 
 
+# ── Stock Reports (dashboards) ────────────────────────────────────────────────
+
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_hub(request: Request):
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse("reports.html", {"request": request, "session": s})
+
+
 # ── Stock Delivery ────────────────────────────────────────────────────────────
 
 def _parse_date_str(val) -> str:
