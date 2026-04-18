@@ -353,33 +353,40 @@ function buildDashboard(rows){
   const totalNoos_cy = styleArr.reduce((s,r)=>s+r.sale_cy,0);
   const totalNoos_all = styleArr.reduce((s,r)=>s+r.sale_all,0);
 
-  // ── Family / Design aggregation ─────────────────────────
-  // Group by type (SACOOR/Outlet) + normalizeDesign, for each month
-  const famMap = {}; // `${brand}|${normDesign}` -> {isSacoor, months: {m: sale}}
+  // ── Family aggregation ──────────────────────────────────
+  // Group by type (SACOOR/Outlet) + FAMILY field, track sale+qty per month key
+  const famMap = {}; // `${type}|${family}` -> {isSacoor, family, months: {key: {sale,qty}}}
   rows.forEach(r=>{
-    if(!r.isNoos||r.year!==CY) return;
-    const nd = normalizeDesign(r.design)||r.design;
-    const key = `${r.isSacoor?'SAC':'OUT'}|${nd}`;
-    if(!famMap[key]) famMap[key]={isSacoor:r.isSacoor,design:nd,months:{}};
-    famMap[key].months[r.month] = (famMap[key].months[r.month]||0)+r.sale;
+    if(!r.isNoos) return;
+    const isDecPY = (r.year===PY && r.month===12);
+    const isCYMonth = (r.year===CY);
+    if(!isDecPY && !isCYMonth) return;
+    const fam = r.family.trim() || normalizeDesign(r.design) || r.design || '(Unknown)';
+    const key = `${r.isSacoor?'SAC':'OUT'}|${fam}`;
+    if(!famMap[key]) famMap[key]={isSacoor:r.isSacoor,family:fam,months:{}};
+    const mk = `${r.year}_${r.month}`;
+    if(!famMap[key].months[mk]) famMap[key].months[mk]={sale:0,qty:0};
+    famMap[key].months[mk].sale+=r.sale;
+    famMap[key].months[mk].qty+=r.qtt;
   });
-  // Also include Dec 2025 for Jan MoM comparison
-  rows.forEach(r=>{
-    if(!r.isNoos||r.year!==PY||r.month!==12) return;
-    const nd = normalizeDesign(r.design)||r.design;
-    const key = `${r.isSacoor?'SAC':'OUT'}|${nd}`;
-    if(!famMap[key]) famMap[key]={isSacoor:r.isSacoor,design:nd,months:{}};
-    famMap[key].months[0] = (famMap[key].months[0]||0)+r.sale; // 0 = Dec prev year
-  });
+
+  // Determine ordered month keys for family table columns (Dec PY if present, then CY months)
+  const hasDec25 = Object.values(famMap).some(e=>e.months[`${PY}_12`]&&e.months[`${PY}_12`].sale>0);
+  const famMonthKeys = [
+    ...(hasDec25?[`${PY}_12`]:[]),
+    ...activeMonths.map(m=>`${CY}_${m}`)
+  ];
 
   // ── Render ───────────────────────────────────────────────
   renderAll({monthly,activeMonths,ytd_noos_cy,ytd_all_cy,ytd_noos_pct,ytd_lfl,avgLfl,
-             weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,famMap,CY,PY});
+             weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,
+             famMap,famMonthKeys,CY,PY});
 }
 
 function renderAll(ctx){
   const {monthly,activeMonths,ytd_noos_cy,ytd_all_cy,ytd_noos_pct,ytd_lfl,avgLfl,
-         weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,famMap,CY,PY} = ctx;
+         weekData,weeksByMonth,top20cy,top20all,totalNoos_cy,totalNoos_all,
+         famMap,famMonthKeys,CY,PY} = ctx;
 
   const main = document.getElementById('main-content');
   main.innerHTML = '';
@@ -428,7 +435,7 @@ function renderAll(ctx){
   // ── Monthly by Family ────────────────────────────────────
   main.appendChild(elText('div','MONTHLY SALES BY FAMILY (NOOS 2026)',{class:'sec-hdr'}));
   const wrap5 = el('div',{class:'tbl-wrap'});
-  wrap5.appendChild(buildFamilyTable(famMap,activeMonths));
+  wrap5.appendChild(buildFamilyTable(famMap,famMonthKeys,CY,PY));
   main.appendChild(wrap5);
 }
 
@@ -678,106 +685,104 @@ function buildStyleTable(styles,totalNoos,isCY,CY){
 // ─────────────────────────────────────────────────────────────
 // Family Table
 // ─────────────────────────────────────────────────────────────
-function buildFamilyTable(famMap,activeMonths){
+function buildFamilyTable(famMap, famMonthKeys, CY, PY){
+  // Column label: '2025_12' → "DEC '25", '2026_1' → "JAN '26"
+  function mkLabel(mk){
+    const [yr,mo] = mk.split('_').map(Number);
+    return `${MONTHS[mo-1]} '${String(yr).slice(2)}`;
+  }
+
+  const entries = Object.values(famMap);
+
+  // Sale total for CY months only (for the "2026 TOTAL" column)
+  function saleTotal(e){
+    return famMonthKeys.filter(k=>k.startsWith(`${CY}_`))
+      .reduce((s,k)=>s+(e.months[k]?e.months[k].sale:0),0);
+  }
+  function qtyTotal(e){
+    return famMonthKeys.filter(k=>k.startsWith(`${CY}_`))
+      .reduce((s,k)=>s+(e.months[k]?e.months[k].qty:0),0);
+  }
+
+  const grandSale = entries.reduce((s,e)=>s+saleTotal(e),0);
+  const grandQty  = entries.reduce((s,e)=>s+qtyTotal(e),0);
+
+  const outEntries = entries.filter(e=>!e.isSacoor).sort((a,b)=>saleTotal(b)-saleTotal(a));
+  const sacEntries = entries.filter(e=>e.isSacoor).sort((a,b)=>saleTotal(b)-saleTotal(a));
+
+  // Build table
   const t = el('table');
   const thead = el('thead');
   const hr = el('tr');
-  th(hr,'DESIGN',{style:'text-align:left;min-width:160px'});
-  activeMonths.forEach(m=>{
-    const prevLabel = m===1?'DEC':MONTHS[m-2];
-    th(hr,`${MONTHS[m-1]}<br><span style="font-size:.6rem;font-weight:400;color:rgba(255,255,255,.5)">vs ${prevLabel}</span>`,{innerHTML:true});
-  });
-  th(hr,'YTD');
+  th(hr,'FAMILY',{style:'text-align:left;min-width:160px'});
+  th(hr,'2026 TOTAL (MYR)');
+  th(hr,'QTY (UNITS)');
+  th(hr,'% SHARE');
+  famMonthKeys.forEach(mk=>th(hr,mkLabel(mk)));
   thead.appendChild(hr);
   t.appendChild(thead);
 
   const tbody = el('tbody');
 
-  // Separate outlet and sacoor entries
-  const entries = Object.values(famMap);
-  const outEntries = entries.filter(e=>!e.isSacoor).sort((a,b)=>a.design.localeCompare(b.design));
-  const sacEntries = entries.filter(e=>e.isSacoor).sort((a,b)=>a.design.localeCompare(b.design));
-
   function addSectionHeader(label){
-    const tr2 = el('tr',{class:'subtotal'});
-    const td2 = el('td');
-    td2.setAttribute('colspan',activeMonths.length+2);
-    td2.style.fontWeight='800';
-    td2.style.fontSize='.72rem';
-    td2.style.letterSpacing='.07em';
-    td2.style.textTransform='uppercase';
-    td2.style.color='#2a6040';
+    const tr2=el('tr',{class:'subtotal'});
+    const td2=el('td');
+    td2.setAttribute('colspan', 4+famMonthKeys.length);
+    td2.style.cssText='font-weight:800;font-size:.72rem;letter-spacing:.07em;text-transform:uppercase;color:#2a6040;text-align:left;padding:6px 10px';
     td2.textContent=label;
     tr2.appendChild(td2);
     tbody.appendChild(tr2);
   }
 
-  function subtotals(ents){
-    const sub = {};
-    ents.forEach(e=>{
-      Object.entries(e.months).forEach(([m,v])=>{ sub[m]=(sub[m]||0)+v; });
+  function addEntryRow(e){
+    const tr2=el('tr');
+    const tot=saleTotal(e), qty=qtyTotal(e);
+    const pct=grandSale>0?tot/grandSale:0;
+    tdLeft(tr2,e.family);
+    td(tr2,tot>0?fmtRM(tot):'—');
+    td(tr2,qty>0?fmt(qty):'—');
+    td(tr2,`<span style="color:var(--orange)">${fmtPct(pct)}</span>`,{innerHTML:true});
+    famMonthKeys.forEach(mk=>{
+      const v=e.months[mk]?e.months[mk].sale:0;
+      td(tr2,v>0?fmtRM(v):'—');
     });
-    return sub;
-  }
-
-  function addRows(ents,label){
-    const sub = subtotals(ents);
-    addSectionHeader(label);
-    ents.forEach(e=>addDesignRow(e));
-    // subtotal
-    const str = el('tr',{class:'subtotal'});
-    tdLeft(str,`${label} Subtotal`,{style:'font-size:.78rem'});
-    let ytd=0;
-    activeMonths.forEach(m=>{
-      const v=sub[m]||0; const prev=sub[m===1?0:m-1]||0;
-      ytd+=v;
-      td(str,momCell(v,prev),{innerHTML:true});
-    });
-    td(str,fmtRM(ytd));
-    tbody.appendChild(str);
-  }
-
-  function addDesignRow(e){
-    const tr2 = el('tr');
-    tdLeft(tr2,e.design);
-    let ytd=0;
-    activeMonths.forEach(m=>{
-      const v=e.months[m]||0;
-      const prev=e.months[m===1?0:m-1]||0;
-      ytd+=v;
-      td(tr2,momCell(v,prev),{innerHTML:true});
-    });
-    td(tr2,fmtRM(ytd));
     tbody.appendChild(tr2);
   }
 
-  function momCell(curr,prev){
-    if(!curr&&!prev) return '<span class="na">—</span>';
-    const val = fmtRM(curr);
-    if(!prev||prev===0) return val;
-    const chg = (curr-prev)/prev;
-    const arrow = chg>0?`<span class="pos"> ▲${(chg*100).toFixed(1)}%</span>`:
-                  chg<0?`<span class="neg"> ▼${(Math.abs(chg)*100).toFixed(1)}%</span>`:
-                  '<span class="na"> —</span>';
-    return val+arrow;
+  function addSubtotalRow(ents,label){
+    const str=el('tr',{class:'subtotal'});
+    const totS=ents.reduce((s,e)=>s+saleTotal(e),0);
+    const totQ=ents.reduce((s,e)=>s+qtyTotal(e),0);
+    const pct=grandSale>0?totS/grandSale:0;
+    tdLeft(str,`${label} Subtotal`);
+    td(str,totS>0?fmtRM(totS):'—');
+    td(str,totQ>0?fmt(totQ):'—');
+    td(str,`<span style="color:var(--orange)">${fmtPct(pct)}</span>`,{innerHTML:true});
+    famMonthKeys.forEach(mk=>{
+      const v=ents.reduce((s,e)=>s+(e.months[mk]?e.months[mk].sale:0),0);
+      td(str,v>0?fmtRM(v):'—');
+    });
+    tbody.appendChild(str);
   }
 
-  // All entries grand totals
-  const allSub = subtotals(entries);
+  addSectionHeader('OUTLET');
+  outEntries.forEach(e=>addEntryRow(e));
+  addSubtotalRow(outEntries,'Outlet');
 
-  addRows(outEntries,'Outlet');
-  addRows(sacEntries,'Sacoor');
+  addSectionHeader('SACOOR');
+  sacEntries.forEach(e=>addEntryRow(e));
+  addSubtotalRow(sacEntries,'Sacoor');
 
-  // Grand total
-  const gtr = el('tr',{class:'grand-total'});
+  // Grand total row
+  const gtr=el('tr',{class:'grand-total'});
   tdLeft(gtr,'GRAND TOTAL');
-  let grandYtd=0;
-  activeMonths.forEach(m=>{
-    const v=allSub[m]||0; const prev=allSub[m===1?0:m-1]||0;
-    grandYtd+=v;
-    td(gtr,momCell(v,prev),{innerHTML:true});
+  td(gtr,grandSale>0?fmtRM(grandSale):'—');
+  td(gtr,grandQty>0?fmt(grandQty):'—');
+  td(gtr,'100%');
+  famMonthKeys.forEach(mk=>{
+    const v=entries.reduce((s,e)=>s+(e.months[mk]?e.months[mk].sale:0),0);
+    td(gtr,v>0?fmtRM(v):'—');
   });
-  td(gtr,fmtRM(grandYtd));
   tbody.appendChild(gtr);
 
   t.appendChild(tbody);
