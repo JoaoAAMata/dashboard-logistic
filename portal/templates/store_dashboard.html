@@ -22,6 +22,12 @@
 {% if request.query_params.get('upload_error') %}
 <div class="alert alert-error">❌ Only PDF files are accepted.</div>
 {% endif %}
+{% if request.query_params.get('receipt_uploaded') %}
+<div class="alert alert-success">✅ Delivery receipt uploaded. You can now mark the transfer as completed.</div>
+{% endif %}
+{% if request.query_params.get('receipt_error') %}
+<div class="alert alert-error">❌ Only PDF files accepted for the delivery receipt.</div>
+{% endif %}
 
 {% if transfers %}
 <div class="card">
@@ -161,6 +167,40 @@
           </td>
           <td style="min-width:220px">
             {% if t.status in ('approved', 'warehouse') %}
+            {% if t.id not in receipt_pdf_ids %}
+            <!-- Step 1: upload receipt PDF first -->
+            <div style="margin-bottom:.5rem">
+              <div class="receipt-required-label">📎 Upload delivery receipt to confirm</div>
+              <form method="post" action="/store/transfer/{{ t.id }}/upload-receipt"
+                    enctype="multipart/form-data" style="margin-top:.4rem">
+                <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+                  <label class="file-upload-mini" for="rcpt-file-{{ t.id }}">
+                    <span class="file-upload-mini-btn">📄 Choose PDF</span>
+                    <input type="file" id="rcpt-file-{{ t.id }}" name="file" accept=".pdf" required
+                           style="display:none" onchange="updateFileLabel(this,'rcpt-name-{{ t.id }}')"/>
+                  </label>
+                  <span id="rcpt-name-{{ t.id }}" class="text-sm text-muted">No file</span>
+                  <button type="submit" class="btn btn-sm btn-primary">Upload</button>
+                </div>
+              </form>
+            </div>
+            <!-- Incorrect still available without PDF -->
+            <form method="post" action="/store/transfer/{{ t.id }}/receipt" id="rf-{{ t.id }}">
+              <input type="hidden" name="receipt_status" id="rs-{{ t.id }}" value=""/>
+              <button type="button" class="btn btn-sm btn-warning"
+                      onclick="toggleIncorrect({{ t.id }})">⚠️ Incorrect</button>
+              <div id="incorrect-panel-{{ t.id }}" style="display:none;margin-top:.5rem">
+                <textarea name="receipt_note" rows="2" placeholder="Describe the issue…"
+                          style="width:100%;font-size:.8rem;border:1px solid #ccc;border-radius:4px;padding:.4rem"></textarea>
+                <button type="button" class="btn btn-sm btn-danger" style="margin-top:.3rem"
+                        onclick="submitReceipt({{ t.id }}, 'incorrect')">Submit</button>
+              </div>
+            </form>
+            {% else %}
+            <!-- Step 2: receipt PDF uploaded — allow completion -->
+            <div style="margin-bottom:.4rem">
+              <a href="/transfer/{{ t.id }}/receipt-pdf" class="receipt-uploaded-badge">✅ Receipt uploaded</a>
+            </div>
             <form method="post" action="/store/transfer/{{ t.id }}/receipt" class="receipt-form" id="rf-{{ t.id }}">
               <input type="hidden" name="receipt_status" id="rs-{{ t.id }}" value=""/>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
@@ -170,14 +210,13 @@
                         onclick="toggleIncorrect({{ t.id }})">⚠️ Incorrect</button>
               </div>
               <div id="incorrect-panel-{{ t.id }}" style="display:none;margin-top:.5rem">
-                <textarea name="receipt_note" rows="2"
-                          placeholder="Describe the issue…"
+                <textarea name="receipt_note" rows="2" placeholder="Describe the issue…"
                           style="width:100%;font-size:.8rem;border:1px solid #ccc;border-radius:4px;padding:.4rem"></textarea>
-                <button type="button" class="btn btn-sm btn-danger"
-                        style="margin-top:.3rem"
+                <button type="button" class="btn btn-sm btn-danger" style="margin-top:.3rem"
                         onclick="submitReceipt({{ t.id }}, 'incorrect')">Submit</button>
               </div>
             </form>
+            {% endif %}
             {% elif t.status == 'completed' %}
             <span class="badge badge-completed">📦 Completed</span>
             <a href="#" class="text-sm text-muted" style="display:block;margin-top:.3rem"
@@ -225,6 +264,11 @@
 .btn-collect:hover { background:#0a4f8a; }
 .btn-upload-signed { background:#f5f5f3; color:#444; border:1px solid #d0d0cc; font-size:.72rem; padding:.25rem .7rem; border-radius:6px; cursor:pointer; font-weight:600; transition:background .15s; }
 .btn-upload-signed:hover { background:#e8e8e4; }
+.receipt-required-label { font-size:.74rem; font-weight:700; color:#b45309; background:#fef3c7; border:1px solid #fde68a; border-radius:5px; padding:.25rem .6rem; display:inline-block; margin-bottom:.2rem; }
+.file-upload-mini-btn { font-size:.74rem; font-weight:600; padding:.28rem .65rem; border:1px solid #d0d0cc; border-radius:5px; background:#fff; cursor:pointer; white-space:nowrap; }
+.file-upload-mini-btn:hover { border-color:#1a1a18; background:#f5f5f3; }
+.receipt-uploaded-badge { font-size:.74rem; font-weight:700; color:#155724; background:#d4edda; border:1px solid #c3e6cb; border-radius:5px; padding:.25rem .65rem; text-decoration:none; display:inline-block; }
+.receipt-uploaded-badge:hover { background:#c3e6cb; }
 </style>
 <script>
 function submitReceipt(tid, status) {
@@ -246,6 +290,10 @@ function showChangeReceipt(tid) {
 function toggleSignedUpload(tid) {
   const div = document.getElementById('signed-upload-' + tid);
   if (div) div.style.display = div.style.display === 'none' ? '' : 'none';
+}
+function updateFileLabel(input, labelId) {
+  const el = document.getElementById(labelId);
+  if (el) el.textContent = input.files[0] ? input.files[0].name : 'No file';
 }
 </script>
 <div style="text-align:center; margin-top:1.5rem; padding-bottom:1rem">

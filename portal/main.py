@@ -186,6 +186,7 @@ async def store_dashboard(request: Request):
         "request": request, "session": s,
         "transfers": transfers, "incoming": incoming,
         "signed_pdf_ids": _signed_pdf_ids(transfers),
+        "receipt_pdf_ids": _receipt_pdf_ids(incoming),
     })
 
 
@@ -337,6 +338,7 @@ async def transfer_detail(request: Request, tid: int):
         "request": request, "session": s,
         "transfer": transfer, "stores": stores,
         "has_signed_pdf": os.path.exists(_signed_pdf_path(tid)),
+        "has_receipt_pdf": os.path.exists(_receipt_pdf_path(tid)),
     })
 
 
@@ -483,6 +485,49 @@ async def store_receipt(request: Request, tid: int):
     if receipt_status in ("completed", "incorrect"):
         database.update_receipt_status(tid, receipt_status, receipt_note)
     return RedirectResponse("/store", status_code=302)
+
+
+@app.post("/store/transfer/{tid}/upload-receipt")
+async def store_upload_receipt_pdf(request: Request, tid: int, file: UploadFile = File(...)):
+    """Destination store uploads delivery receipt PDF (required before completing)."""
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    transfer = database.get_transfer_detail(tid)
+    if not transfer or transfer["to_store_id"] != s["store_id"]:
+        return RedirectResponse("/store")
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext != ".pdf":
+        return RedirectResponse("/store?receipt_error=1", status_code=302)
+    content = await file.read()
+    with open(_receipt_pdf_path(tid), "wb") as f:
+        f.write(content)
+    return RedirectResponse("/store?receipt_uploaded=1", status_code=302)
+
+
+@app.get("/transfer/{tid}/receipt-pdf")
+async def download_receipt_pdf(request: Request, tid: int):
+    """Download the delivery receipt PDF."""
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    transfer = database.get_transfer_detail(tid)
+    if not transfer:
+        return RedirectResponse("/")
+    if not s["is_admin"] and not s.get("is_transporter"):
+        if transfer["from_store_id"] != s["store_id"] and transfer["to_store_id"] != s["store_id"]:
+            return RedirectResponse("/store")
+    path = _receipt_pdf_path(tid)
+    if not os.path.exists(path):
+        return RedirectResponse("/store")
+    with open(path, "rb") as f:
+        data = f.read()
+    filename = f"{transfer['collect_no']}_RECEIPT.pdf"
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/logistics/transfer/{tid}/receipt")
@@ -694,6 +739,16 @@ def _signed_pdf_path(tid: int) -> str:
 def _signed_pdf_ids(transfer_list) -> set:
     """Return set of transfer IDs that have a signed PDF uploaded."""
     return {t["id"] for t in transfer_list if os.path.exists(_signed_pdf_path(t["id"]))}
+
+# Receipt PDFs (delivery proof uploaded by destination store before marking completed)
+_RECEIPT_PDF_DIR = os.path.join(os.path.dirname(os.path.abspath(database.DB_PATH)), "receipt_pdfs")
+os.makedirs(_RECEIPT_PDF_DIR, exist_ok=True)
+
+def _receipt_pdf_path(tid: int) -> str:
+    return os.path.join(_RECEIPT_PDF_DIR, f"receipt_{tid}.pdf")
+
+def _receipt_pdf_ids(transfer_list) -> set:
+    return {t["id"] for t in transfer_list if os.path.exists(_receipt_pdf_path(t["id"]))}
 
 
 # ── Monthly file helper ───────────────────────────────────────────────────────

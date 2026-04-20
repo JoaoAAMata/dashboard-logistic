@@ -40,12 +40,12 @@
         </select>
       </div>
       <div class="form-group">
-        <label>Total Cartons (Ctn)</label>
-        <input type="number" name="total_ctn" min="0" value="0" placeholder="0"/>
+        <label id="label-ctn">Total Cartons (Ctn)</label>
+        <input type="number" name="total_ctn" id="input-ctn" min="0" value="0" placeholder="0"/>
       </div>
       <div class="form-group">
-        <label>Total Railings (Rln)</label>
-        <input type="number" name="total_rln" min="0" value="0" placeholder="0"/>
+        <label id="label-rln">Total Railings (Rln)</label>
+        <input type="number" name="total_rln" id="input-rln" min="0" value="0" placeholder="0"/>
       </div>
       <div class="form-group">
         <label>Collection Date *</label>
@@ -89,7 +89,7 @@
     </div>
 
     <div class="upload-hint">
-      📷 You can upload a photo for each item. Accepted formats: JPG, PNG.
+      📷 Photo is <strong>required</strong> for each decoration item. Accepted formats: JPG, PNG.
     </div>
 
     <table class="table" id="deco-table">
@@ -245,5 +245,49 @@ function previewPhoto(input) {
 }
 
 switchType(currentType);
+
+// ── Form validation ──────────────────────────────────────────
+document.getElementById('transfer-form').addEventListener('submit', function(e) {
+  if (currentType !== 'decoration') return; // stock form uses native required attrs
+
+  const errors = [];
+
+  // Top-level fields
+  const toStore = document.querySelector('select[name="to_store_id"]').value;
+  const deliveryDate = document.querySelector('input[name="delivery_date"]').value;
+  const ctn = parseInt(document.getElementById('input-ctn').value) || 0;
+  const rln = parseInt(document.getElementById('input-rln').value) || 0;
+
+  if (!toStore)      errors.push('Please select a Destination Store.');
+  if (!deliveryDate) errors.push('Please enter an Expected Delivery Date.');
+  if (ctn === 0 && rln === 0) errors.push('Please enter at least Total Cartons or Total Railings.');
+
+  // Decoration line items
+  const rows = document.querySelectorAll('#decoration-body .line-row');
+  rows.forEach((row, i) => {
+    const desc  = row.querySelector('input[name="descriptions"]')?.value.trim() || '';
+    const qty   = parseInt(row.querySelector('input[name="quantities"]')?.value) || 0;
+    const photo = row.querySelector('input[name="photos"]');
+    const hasPhoto = photo && photo.files && photo.files.length > 0;
+
+    if (!desc)     errors.push(`Line ${i+1}: Description is required.`);
+    if (qty <= 0)  errors.push(`Line ${i+1}: Quantity must be at least 1.`);
+    if (!hasPhoto) errors.push(`Line ${i+1}: Photo is required for decoration items.`);
+  });
+
+  if (errors.length > 0) {
+    e.preventDefault();
+    let box = document.getElementById('validation-error-box');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'validation-error-box';
+      box.className = 'alert alert-error';
+      box.style.cssText = 'margin-bottom:1rem;white-space:pre-line';
+      document.getElementById('transfer-form').insertAdjacentElement('beforebegin', box);
+    }
+    box.textContent = errors.join('\n');
+    box.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+});
 </script>
 {% endblock %}
