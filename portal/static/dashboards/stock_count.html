@@ -54,8 +54,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
 .neg{color:#c0392b}
 .pos{color:#1a5c1a}
 
-/* ── Month header col ── */
-.col-month{background:#f0f6ff;color:#185FA5!important}
+/* ── Month header cols ── */
+.col-month {background:#f0f6ff;color:#185FA5!important}
+.col-month-alt{background:#e8f0ff;color:#185FA5!important}
+.col-ytd   {background:#1a1a18;color:#fff!important}
 
 /* ── States ── */
 .empty-state{text-align:center;padding:3rem;color:#9a9a94;font-size:.9rem}
@@ -102,10 +104,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;backgrou
     <a href="/inventory-results" style="color:#185FA5;font-weight:600">Go to Inventory Results to upload files →</a>
   </div>
 
-  <!-- Month selector -->
-  <div id="months-section" style="display:none;margin-bottom:1.5rem">
-    <div class="section-label">Filter by Month</div>
-    <div id="month-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
+  <!-- Loaded months indicator -->
+  <div id="months-section" style="display:none;margin-bottom:1.25rem">
+    <div class="section-label">Loaded Months</div>
+    <div id="month-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"></div>
   </div>
 
   <!-- Dashboard -->
@@ -164,11 +166,10 @@ const WH_STORE = {
 const BRAND_ORDER = ['Boutique','Outlet','Blue','One','Club','Warehouse'];
 
 // ── State ─────────────────────────────────────────────────────────────────────
-let monthData   = {};   // { "01": [{wh,store,brand,cost,qty},...] }
-let loadedOrder = [];   // ["01","03",...] in load order
-let activeMonth = null; // null = All months; or specific month key
-let activeBrand = 'all';
-let availableMonths = [];
+let monthData      = {};   // { "01": [{wh,store,brand,cost,qty},...] }
+let loadedOrder    = [];   // ["01","02","03",...] sorted
+let availableMonths= [];
+let activeBrand    = 'all';
 
 // ── Formatting ─────────────────────────────────────────────────────────────────
 function fmtCost(n) {
@@ -257,130 +258,150 @@ function ytdRows() {
   return all;
 }
 
-// ── Build table headers ────────────────────────────────────────────────────────
-function buildHeaders(periodLabel, showYtd) {
-  // BY BRAND header
+// ── Build pivot headers ────────────────────────────────────────────────────────
+function buildHeaders() {
+  const months = loadedOrder;
+  // sub-header cells (Cost/Qty) repeated per month + YTD
+  let r2html = '';
+  months.forEach((mv, i) => {
+    const cls = i % 2 === 0 ? 'col-month' : 'col-month-alt';
+    r2html += `<th class="${cls}">Cost</th><th class="${cls}">Qty</th>`;
+  });
+  r2html += `<th class="col-ytd">Cost</th><th class="col-ytd">Qty</th>`;
+
+  // BY BRAND
   const bThead = document.getElementById('brand-thead');
   bThead.innerHTML = '';
   const bR1 = document.createElement('tr');
   const bR2 = document.createElement('tr');
-  bR1.innerHTML = `<th rowspan="2" style="text-align:left">Brand</th>
-    <th colspan="2" class="col-month">${periodLabel}</th>
-    ${showYtd ? '<th colspan="2">YTD 2026</th>' : ''}`;
-  bR2.innerHTML = `<th class="col-month">Cost</th><th class="col-month">Qty</th>
-    ${showYtd ? '<th>Cost</th><th>Qty</th>' : ''}`;
+  let br1 = `<th rowspan="2" style="text-align:left;min-width:110px">Brand</th>`;
+  months.forEach((mv, i) => {
+    const label = (availableMonths.find(m=>m.value===mv)?.label || mv).toUpperCase();
+    const cls = i % 2 === 0 ? 'col-month' : 'col-month-alt';
+    br1 += `<th colspan="2" class="${cls}">${label}</th>`;
+  });
+  br1 += `<th colspan="2" class="col-ytd">YTD 2026</th>`;
+  bR1.innerHTML = br1; bR2.innerHTML = r2html;
   bThead.appendChild(bR1); bThead.appendChild(bR2);
 
-  // BY STORE header
+  // BY STORE
   const sThead = document.getElementById('store-thead');
   sThead.innerHTML = '';
   const sR1 = document.createElement('tr');
   const sR2 = document.createElement('tr');
-  sR1.innerHTML = `<th rowspan="2" style="text-align:left">WH</th>
-    <th rowspan="2" style="text-align:left">Store</th>
-    <th colspan="2" class="col-month">${periodLabel}</th>
-    ${showYtd ? '<th colspan="2">YTD 2026</th>' : ''}`;
-  sR2.innerHTML = `<th class="col-month">Cost</th><th class="col-month">Qty</th>
-    ${showYtd ? '<th>Cost</th><th>Qty</th>' : ''}`;
+  let sr1 = `<th rowspan="2" style="text-align:left">WH</th><th rowspan="2" style="text-align:left">Store</th>`;
+  months.forEach((mv, i) => {
+    const label = (availableMonths.find(m=>m.value===mv)?.label || mv).toUpperCase();
+    const cls = i % 2 === 0 ? 'col-month' : 'col-month-alt';
+    sr1 += `<th colspan="2" class="${cls}">${label}</th>`;
+  });
+  sr1 += `<th colspan="2" class="col-ytd">YTD 2026</th>`;
+  sR1.innerHTML = sr1; sR2.innerHTML = r2html;
   sThead.appendChild(sR1); sThead.appendChild(sR2);
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
 function render() {
-  const allRows = ytdRows();
-  if (!allRows.length) return;
+  const months = loadedOrder;
+  if (!months.length) return;
 
   document.getElementById('dashboard').style.display = '';
+  buildHeaders();
 
-  // Determine which rows to use for the "period" column
-  const mRows = activeMonth ? (monthData[activeMonth] || []) : allRows;
-  const showYtd = !!activeMonth; // only show YTD column when a specific month is filtered
-  const periodLabel = activeMonth
-    ? (availableMonths.find(m=>m.value===activeMonth)?.label || activeMonth).toUpperCase()
-    : 'ALL MONTHS 2026';
-
-  buildHeaders(periodLabel, showYtd);
-
-  const cols = showYtd ? 5 : 3; // number of <td> per data row (brand col + 2 or 4 values)
+  const allRows  = ytdRows();
+  const ytdBrand = aggBrand(allRows);
+  const ytdStore = aggStore(allRows);
+  const perMonthBrand = months.map(m => aggBrand(monthData[m]||[]));
+  const perMonthStore = months.map(m => aggStore(monthData[m]||[]));
+  const storeColspan  = 2 + months.length * 2 + 2;
 
   // BY BRAND ─────────────────────────────
-  const mBrand = aggBrand(mRows);
-  const yBrand = aggBrand(allRows);
   const bt = document.getElementById('brand-tbody');
   bt.innerHTML = '';
-  let mTc=0,mTq=0,yTc=0,yTq=0;
+  const mTotals = months.map(() => ({cost:0,qty:0}));
+  let yTc=0, yTq=0;
+
   for (const b of BRAND_ORDER) {
     if (activeBrand !== 'all' && activeBrand !== b) continue;
-    const m=mBrand[b], y=yBrand[b];
-    mTc+=m.cost; mTq+=m.qty; yTc+=y.cost; yTq+=y.qty;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${b}</td><td>${fmtCost(m.cost)}</td><td>${fmtQty(m.qty)}</td>`
-      +(showYtd?`<td>${fmtCost(y.cost)}</td><td>${fmtQty(y.qty)}</td>`:'');
+    let html = `<td>${b}</td>`;
+    months.forEach((mv, i) => {
+      const agg = perMonthBrand[i][b];
+      mTotals[i].cost += agg.cost; mTotals[i].qty += agg.qty;
+      html += `<td>${fmtCost(agg.cost)}</td><td>${fmtQty(agg.qty)}</td>`;
+    });
+    const yb = ytdBrand[b];
+    yTc += yb.cost; yTq += yb.qty;
+    html += `<td>${fmtCost(yb.cost)}</td><td>${fmtQty(yb.qty)}</td>`;
+    const tr = document.createElement('tr');
+    tr.innerHTML = html;
     bt.appendChild(tr);
   }
-  if (activeBrand==='all') {
-    const tot=document.createElement('tr'); tot.className='total-row';
-    tot.innerHTML=`<td>Total</td><td>${fmtCost(mTc)}</td><td>${fmtQty(mTq)}</td>`
-      +(showYtd?`<td>${fmtCost(yTc)}</td><td>${fmtQty(yTq)}</td>`:'');
-    bt.appendChild(tot);
+  if (activeBrand === 'all') {
+    let thtml = `<td>Total</td>`;
+    mTotals.forEach(t => { thtml += `<td>${fmtCost(t.cost)}</td><td>${fmtQty(t.qty)}</td>`; });
+    thtml += `<td>${fmtCost(yTc)}</td><td>${fmtQty(yTq)}</td>`;
+    const tot = document.createElement('tr'); tot.className = 'total-row';
+    tot.innerHTML = thtml; bt.appendChild(tot);
   }
 
   // BY STORE ─────────────────────────────
-  const mStore = aggStore(mRows);
-  const yStore = aggStore(allRows);
   const st = document.getElementById('store-tbody');
   st.innerHTML = '';
-  const storeColspan = showYtd ? 6 : 4;
 
   for (const brand of BRAND_ORDER) {
     if (activeBrand !== 'all' && activeBrand !== brand) continue;
 
     const whSet = new Set();
-    Object.entries(WH_BRAND).forEach(([wh,b])=>{ if(b===brand) whSet.add(wh); });
-    Object.values({...mStore,...yStore}).forEach(s=>{ if(s.brand===brand) whSet.add(s.wh); });
+    Object.entries(WH_BRAND).forEach(([wh,b]) => { if(b===brand) whSet.add(wh); });
+    perMonthStore.forEach(ms => Object.values(ms).forEach(s => { if(s.brand===brand) whSet.add(s.wh); }));
+    Object.values(ytdStore).forEach(s => { if(s.brand===brand) whSet.add(s.wh); });
     if (!whSet.size) continue;
 
-    const activeWHs = [...whSet].filter(wh => mStore[wh] || yStore[wh]).sort();
+    const activeWHs = [...whSet].filter(wh => perMonthStore.some(ms=>ms[wh]) || ytdStore[wh]).sort();
     if (!activeWHs.length) continue;
 
-    const hdr=document.createElement('tr'); hdr.className='brand-header';
-    hdr.innerHTML=`<td colspan="${storeColspan}">${brand.toUpperCase()}</td>`;
+    const hdr = document.createElement('tr'); hdr.className = 'brand-header';
+    hdr.innerHTML = `<td colspan="${storeColspan}">${brand.toUpperCase()}</td>`;
     st.appendChild(hdr);
 
-    let mBc=0,mBq=0,yBc=0,yBq=0;
+    const subTotals = months.map(() => ({cost:0,qty:0}));
+    let yBc=0, yBq=0;
+
     for (const wh of activeWHs) {
-      const ms=mStore[wh], ys=yStore[wh];
-      const name=(ms||ys)?.store || WH_STORE[wh] || wh;
-      const mc=ms?.cost??0, mq=ms?.qty??0, yc=ys?.cost??0, yq=ys?.qty??0;
-      mBc+=mc; mBq+=mq; yBc+=yc; yBq+=yq;
-      const tr=document.createElement('tr');
-      tr.innerHTML=`<td style="font-family:monospace;color:#6b7280">${wh}</td><td>${name}</td><td>${fmtCost(mc)}</td><td>${fmtQty(mq)}</td>`
-        +(showYtd?`<td>${fmtCost(yc)}</td><td>${fmtQty(yq)}</td>`:'');
-      st.appendChild(tr);
+      const name = WH_STORE[wh] || wh;
+      let html = `<td style="font-family:monospace;color:#6b7280">${wh}</td><td>${name}</td>`;
+      months.forEach((mv, i) => {
+        const ms = perMonthStore[i][wh];
+        const mc = ms?.cost??0, mq = ms?.qty??0;
+        subTotals[i].cost += mc; subTotals[i].qty += mq;
+        html += `<td>${fmtCost(mc)}</td><td>${fmtQty(mq)}</td>`;
+      });
+      const ys = ytdStore[wh];
+      const yc = ys?.cost??0, yq = ys?.qty??0;
+      yBc += yc; yBq += yq;
+      html += `<td>${fmtCost(yc)}</td><td>${fmtQty(yq)}</td>`;
+      const tr = document.createElement('tr'); tr.innerHTML = html; st.appendChild(tr);
     }
-    const sub=document.createElement('tr'); sub.className='subtotal-row';
-    sub.innerHTML=`<td colspan="2">Total ${brand}</td><td>${fmtCost(mBc)}</td><td>${fmtQty(mBq)}</td>`
-      +(showYtd?`<td>${fmtCost(yBc)}</td><td>${fmtQty(yBq)}</td>`:'');
-    st.appendChild(sub);
+    let shtml = `<td colspan="2">Total ${brand}</td>`;
+    subTotals.forEach(t => { shtml += `<td>${fmtCost(t.cost)}</td><td>${fmtQty(t.qty)}</td>`; });
+    shtml += `<td>${fmtCost(yBc)}</td><td>${fmtQty(yBq)}</td>`;
+    const sub = document.createElement('tr'); sub.className = 'subtotal-row';
+    sub.innerHTML = shtml; st.appendChild(sub);
   }
 
-  if (activeBrand==='all') {
-    let mc2=0,mq2=0,yc2=0,yq2=0;
-    for (const s of Object.values(mStore)) { mc2+=s.cost; mq2+=s.qty; }
-    for (const s of Object.values(yStore)) { yc2+=s.cost; yq2+=s.qty; }
-    const tot=document.createElement('tr'); tot.className='total-row';
-    tot.innerHTML=`<td colspan="2">TOTAL</td><td>${fmtCost(mc2)}</td><td>${fmtQty(mq2)}</td>`
-      +(showYtd?`<td>${fmtCost(yc2)}</td><td>${fmtQty(yq2)}</td>`:'');
-    st.appendChild(tot);
+  if (activeBrand === 'all') {
+    const grandMon = months.map(() => ({cost:0,qty:0}));
+    let gc=0, gq=0;
+    for (const s of Object.values(ytdStore)) { gc+=s.cost; gq+=s.qty; }
+    perMonthStore.forEach((ms, i) => {
+      for (const s of Object.values(ms)) { grandMon[i].cost+=s.cost; grandMon[i].qty+=s.qty; }
+    });
+    let ghtml = `<td colspan="2">TOTAL</td>`;
+    grandMon.forEach(t => { ghtml += `<td>${fmtCost(t.cost)}</td><td>${fmtQty(t.qty)}</td>`; });
+    ghtml += `<td>${fmtCost(gc)}</td><td>${fmtQty(gq)}</td>`;
+    const tot = document.createElement('tr'); tot.className = 'total-row';
+    tot.innerHTML = ghtml; st.appendChild(tot);
   }
-}
-
-// ── Set month filter ──────────────────────────────────────────────────────────
-function setFilter(val, chipEl) {
-  activeMonth = val;
-  document.querySelectorAll('#month-chips .month-chip').forEach(c=>c.classList.remove('chip-active'));
-  chipEl.classList.add('chip-active');
-  render();
 }
 
 // ── Brand tabs ────────────────────────────────────────────────────────────────
@@ -408,35 +429,14 @@ async function init() {
     }
 
     availableMonths = months;
-    document.getElementById('months-section').style.display='';
-    const chipsEl = document.getElementById('month-chips');
 
-    // "All Months" chip (default active)
-    const allChip = document.createElement('button');
-    allChip.className = 'month-chip chip-active';
-    allChip.dataset.month = 'all';
-    allChip.dataset.label = 'All Months';
-    allChip.textContent = 'All Months';
-    allChip.addEventListener('click', () => setFilter(null, allChip));
-    chipsEl.appendChild(allChip);
-
-    // Individual month chips
-    for (const m of months) {
-      const chip = document.createElement('button');
-      chip.className = 'month-chip';
-      chip.dataset.month = m.value;
-      chip.dataset.label = m.label;
-      chip.textContent = m.label;
-      chip.addEventListener('click', () => setFilter(m.value, chip));
-      chipsEl.appendChild(chip);
-    }
-
-    // Load all months silently
+    // Load all months
     const loadingEl = document.getElementById('state-loading');
     loadingEl.style.display='';
-    loadingEl.innerHTML='<span class="spinner"></span> Loading all months…';
-    let loaded=0;
-    for (const m of months) {
+    loadingEl.innerHTML='<span class="spinner"></span> Loading months…';
+    for (let i=0; i<months.length; i++) {
+      const m = months[i];
+      loadingEl.innerHTML=`<span class="spinner"></span> Loading ${m.label}… (${i+1}/${months.length})`;
       try {
         const resp = await fetch(`/inventory-results/download/${m.value}`,{credentials:'include'});
         if (resp.ok) {
@@ -444,13 +444,22 @@ async function init() {
           monthData[m.value] = parseRows(ab);
           if (!loadedOrder.includes(m.value)) loadedOrder.push(m.value);
         }
-      } catch(e) { /* skip failed month */ }
-      loaded++;
-      loadingEl.innerHTML=`<span class="spinner"></span> Loading months… (${loaded}/${months.length})`;
+      } catch(e) { /* skip */ }
     }
     loadingEl.style.display='none';
 
-    // Show dashboard with all months combined
+    // Show loaded months as info badges
+    const chipsEl = document.getElementById('month-chips');
+    loadedOrder.forEach(mv => {
+      const label = availableMonths.find(m=>m.value===mv)?.label || mv;
+      const badge = document.createElement('span');
+      badge.className = 'month-chip chip-active';
+      badge.style.cursor = 'default';
+      badge.textContent = label;
+      chipsEl.appendChild(badge);
+    });
+    document.getElementById('months-section').style.display='';
+
     render();
 
   } catch(e) {
