@@ -632,6 +632,63 @@ async def bulk_approve(request: Request):
     return RedirectResponse(f"/logistics?bulk_approved={approved_count}", status_code=302)
 
 
+# ── Admin: User Management ────────────────────────────────────────────────────
+
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users_page(request: Request):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    all_users = database.get_all_stores(exclude_admin=False)
+    stores      = [u for u in all_users if not u.get("is_admin") and not u.get("is_transporter")]
+    transporters = [u for u in all_users if u.get("is_transporter")]
+    admins      = [u for u in all_users if u.get("is_admin")]
+    # Build JSON dict keyed by id for client-side lookup
+    import json as _json
+    users_json = _json.dumps({u["id"]: {
+        "store_name": u["store_name"],
+        "username":   u["username"],
+        "store_code": u["store_code"],
+        "city":       u.get("city") or "",
+        "country":    u.get("country") or "",
+        "address":    u.get("address") or "",
+        "is_admin":        int(u.get("is_admin") or 0),
+        "is_transporter":  int(u.get("is_transporter") or 0),
+    } for u in all_users})
+    success = request.query_params.get("success", "")
+    error   = request.query_params.get("error", "")
+    return templates.TemplateResponse("admin_users.html", {
+        "request": request, "session": s,
+        "all_users": all_users,
+        "stores": stores,
+        "transporters": transporters,
+        "admins": admins,
+        "users_json": users_json,
+        "success": success,
+        "error": error,
+    })
+
+
+@app.post("/admin/users/{uid}/reset-pin")
+async def admin_reset_pin(request: Request, uid: int):
+    s = get_session(request)
+    if not s or not s["is_admin"]:
+        return RedirectResponse("/login")
+    form = await request.form()
+    new_pin     = form.get("new_pin", "")
+    confirm_pin = form.get("confirm_pin", "")
+    if len(new_pin) < 4:
+        return RedirectResponse(f"/admin/users?uid={uid}&error=PIN+must+be+at+least+4+characters", status_code=302)
+    if new_pin != confirm_pin:
+        return RedirectResponse(f"/admin/users?uid={uid}&error=PINs+do+not+match", status_code=302)
+    store = database.get_store_by_id(uid)
+    if not store:
+        return RedirectResponse("/admin/users?error=User+not+found", status_code=302)
+    database.change_pin(uid, new_pin)
+    name = store["store_name"]
+    return RedirectResponse(f"/admin/users?uid={uid}&success=PIN+reset+for+{name}", status_code=302)
+
+
 @app.post("/logistics/transfer/{tid}/edit")
 async def edit_transfer(request: Request, tid: int):
     s = get_session(request)

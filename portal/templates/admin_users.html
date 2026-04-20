@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}User Management{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>👥 User Management</h1>
+    <p class="text-muted">View users and reset PINs</p>
+  </div>
+  <a href="/home" class="btn btn-secondary">← Back</a>
+</div>
+
+{% if success %}
+<div class="alert alert-success">{{ success }}</div>
+{% endif %}
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<div class="card">
+  <h2 class="card-title">Select User</h2>
+  <div class="form-group" style="max-width:480px">
+    <label>User / Store</label>
+    <select id="user-select" onchange="showUser(this.value)" style="font-size:.9rem">
+      <option value="">-- Select a user --</option>
+      <optgroup label="🏪 Stores">
+        {% for u in stores %}
+        <option value="{{ u.id }}">{{ u.store_name }} ({{ u.username }})</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="🚚 Transporters">
+        {% for u in transporters %}
+        <option value="{{ u.id }}">{{ u.store_name }} ({{ u.username }})</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="⚙️ Admin">
+        {% for u in admins %}
+        <option value="{{ u.id }}">{{ u.store_name }} ({{ u.username }})</option>
+        {% endfor %}
+      </optgroup>
+    </select>
+  </div>
+</div>
+
+<!-- User detail card -->
+<div id="user-detail" class="card" style="display:none">
+  <h2 class="card-title" id="detail-title">User Details</h2>
+
+  <div class="info-grid" id="detail-grid">
+    <div class="info-item"><span class="info-label">Name</span><span class="info-value" id="d-name"></span></div>
+    <div class="info-item"><span class="info-label">Username</span><span class="info-value" id="d-username"></span></div>
+    <div class="info-item"><span class="info-label">Store Code</span><span class="info-value" id="d-code"></span></div>
+    <div class="info-item"><span class="info-label">Role</span><span class="info-value" id="d-role"></span></div>
+    <div class="info-item"><span class="info-label">City</span><span class="info-value" id="d-city"></span></div>
+    <div class="info-item"><span class="info-label">Country</span><span class="info-value" id="d-country"></span></div>
+    <div class="info-item" style="grid-column:1/-1"><span class="info-label">Address</span><span class="info-value" id="d-address"></span></div>
+  </div>
+
+  <hr style="margin:1.25rem 0;border:none;border-top:1px solid var(--grey-bd)"/>
+
+  <h3 style="font-size:.95rem;margin-bottom:.75rem">🔑 Reset PIN</h3>
+  <form method="post" action="" id="reset-pin-form" style="max-width:360px">
+    <div class="form-grid" style="grid-template-columns:1fr 1fr;gap:.75rem;align-items:end">
+      <div class="form-group" style="margin:0">
+        <label>New PIN</label>
+        <input type="password" name="new_pin" id="new-pin" required minlength="4" placeholder="Min. 4 characters"/>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Confirm PIN</label>
+        <input type="password" name="confirm_pin" id="confirm-pin" required minlength="4" placeholder="Repeat PIN"/>
+      </div>
+    </div>
+    <div style="margin-top:.75rem">
+      <button type="submit" class="btn btn-primary">Reset PIN</button>
+      <span id="pin-match-err" class="text-muted" style="font-size:.8rem;margin-left:.5rem;display:none;color:#c0392b">PINs do not match.</span>
+    </div>
+  </form>
+</div>
+
+<!-- Stats summary -->
+<div class="card">
+  <h2 class="card-title">Summary</h2>
+  <div class="info-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="info-item">
+      <span class="info-label">Total Stores</span>
+      <span class="info-value" style="font-size:1.5rem;font-weight:700">{{ stores|length }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Transporters</span>
+      <span class="info-value" style="font-size:1.5rem;font-weight:700">{{ transporters|length }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Admin Accounts</span>
+      <span class="info-value" style="font-size:1.5rem;font-weight:700">{{ admins|length }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Total Users</span>
+      <span class="info-value" style="font-size:1.5rem;font-weight:700">{{ (stores|length) + (transporters|length) + (admins|length) }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- All users table -->
+<div class="card">
+  <h2 class="card-title">All Users</h2>
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Store Name</th>
+        <th>Username</th>
+        <th>Code</th>
+        <th>Role</th>
+        <th>City</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for u in all_users %}
+      <tr>
+        <td>{{ u.store_name }}</td>
+        <td><code style="font-size:.82rem;background:#f4f5f7;padding:.15rem .4rem;border-radius:3px">{{ u.username }}</code></td>
+        <td>{{ u.store_code }}</td>
+        <td>
+          {% if u.is_admin %}
+          <span class="badge" style="background:#7c3aed;color:#fff">Admin</span>
+          {% elif u.is_transporter %}
+          <span class="badge" style="background:#0c5fa5;color:#fff">Transporter</span>
+          {% else %}
+          <span class="badge" style="background:#2d6a4f;color:#fff">Store</span>
+          {% endif %}
+        </td>
+        <td>{{ u.city or '—' }}</td>
+        <td>
+          <button type="button" class="btn btn-secondary btn-sm"
+                  onclick="selectUser('{{ u.id }}')">
+            Select
+          </button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+const USERS = {{ users_json|safe }};
+
+function showUser(uid) {
+  uid = parseInt(uid);
+  const detail = document.getElementById('user-detail');
+  if (!uid) { detail.style.display = 'none'; return; }
+
+  const u = USERS[uid];
+  if (!u) return;
+
+  document.getElementById('d-name').textContent     = u.store_name;
+  document.getElementById('d-username').textContent = u.username;
+  document.getElementById('d-code').textContent     = u.store_code;
+  document.getElementById('d-city').textContent     = u.city || '—';
+  document.getElementById('d-country').textContent  = u.country || '—';
+  document.getElementById('d-address').textContent  = u.address || '—';
+
+  let role = 'Store';
+  if (u.is_admin)       role = '⚙️ Admin';
+  else if (u.is_transporter) role = '🚚 Transporter';
+  else                  role = '🏪 Store';
+  document.getElementById('d-role').textContent = role;
+
+  document.getElementById('detail-title').textContent = u.store_name;
+  document.getElementById('reset-pin-form').action = `/admin/users/${uid}/reset-pin`;
+
+  detail.style.display = '';
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function selectUser(uid) {
+  const sel = document.getElementById('user-select');
+  sel.value = uid;
+  showUser(uid);
+}
+
+// PIN match validation
+document.getElementById('reset-pin-form').addEventListener('submit', function(e) {
+  const p1 = document.getElementById('new-pin').value;
+  const p2 = document.getElementById('confirm-pin').value;
+  const err = document.getElementById('pin-match-err');
+  if (p1 !== p2) {
+    e.preventDefault();
+    err.style.display = 'inline';
+  } else {
+    err.style.display = 'none';
+  }
+});
+
+// Auto-select if query param present
+const params = new URLSearchParams(window.location.search);
+if (params.get('uid')) selectUser(params.get('uid'));
+</script>
+{% endblock %}
