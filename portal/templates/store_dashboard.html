@@ -57,12 +57,12 @@
           {% else %}❌ Rejected{% endif %}
         </span></td>
         <td style="min-width:170px">
-          {% if t.status == 'pending' %}
+          {% if t.status == 'approved' %}
           <form method="post" action="/store/transfer/{{ t.id }}/mark-collected"
                 onsubmit="return confirm('Confirm that the transporter has collected this transfer?')">
             <button type="submit" class="btn btn-sm btn-collect">🚚 Transporter Collected</button>
           </form>
-          {% elif t.status != 'rejected' %}
+          {% elif t.status not in ('pending', 'rejected') %}
           <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
           {% endif %}
         </td>

@@ -37,7 +37,7 @@
   {% endif %}
 </div>
 
-{% if transfer.status in ('pending', 'collected') %}
+{% if transfer.status in ('pending', 'collected', 'approved') %}
 <div class="action-bar">
   <form method="post" action="/logistics/transfer/{{ transfer.id }}/approve" style="display:inline">
     <button type="submit" class="btn btn-success">✅ Approve</button>

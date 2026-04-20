@@ -419,7 +419,7 @@ async def store_mark_collected(request: Request, tid: int):
     transfer = database.get_transfer_detail(tid)
     if not transfer or transfer["from_store_id"] != s["store_id"]:
         return RedirectResponse("/store")
-    if transfer["status"] == "pending":
+    if transfer["status"] == "approved":
         database.update_transfer_status(tid, "collected")
     return RedirectResponse("/store?collected=1", status_code=302)
 
