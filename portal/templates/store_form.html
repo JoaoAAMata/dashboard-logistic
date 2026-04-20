@@ -274,14 +274,14 @@ document.getElementById('transfer-form').addEventListener('submit', function(e) 
       if (!hasPhoto) errors.push(`Line ${i+1}: Photo is required for decoration items.`);
     });
   } else {
-    // Stock — at least one line with quantity > 0
+    // Stock — TG number required + quantity > 0 per line
     const rows = document.querySelectorAll('#commercial-body .line-row');
-    let hasQty = false;
     rows.forEach((row, i) => {
+      const tg  = row.querySelector('input[name="tg_numbers"]')?.value.trim() || '';
       const qty = parseInt(row.querySelector('input[name="quantities"]')?.value) || 0;
-      if (qty > 0) hasQty = true;
+      if (!tg)      errors.push(`Line ${i+1}: TG Number is required.`);
+      if (qty <= 0) errors.push(`Line ${i+1}: Quantity must be at least 1.`);
     });
-    if (!hasQty) errors.push('Please enter a quantity greater than 0 in at least one line.');
   }
 
   if (errors.length > 0) {
