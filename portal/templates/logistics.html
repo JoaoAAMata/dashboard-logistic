@@ -166,7 +166,10 @@
         </td>
         <td class="row-actions" style="text-align:right">
           <a href="/logistics/transfer/{{ t.id }}" class="btn btn-sm btn-secondary">View</a>
-          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇</a>
+          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary" title="Download PDF">⬇ PDF</a>
+          {% if t.id in signed_pdf_ids %}
+          <a href="/transfer/{{ t.id }}/signed-pdf" class="btn btn-sm btn-signed" title="Download Signed PDF">✅ Signed</a>
+          {% endif %}
           <button class="btn btn-sm btn-danger-soft"
                   onclick="confirmDelete({{ t.id }}, '{{ t.collect_no }}')"
                   title="Delete">🗑</button>
@@ -240,6 +243,8 @@
 .pill-incorrect .pill-count { color: #f59e0b; }
 .pill-rejected  .pill-count { color: var(--red); }
 .badge-collected { background:#e8f4fd; color:#0c5fa5; border:1px solid #b8d9f5; padding:.2rem .5rem; border-radius:4px; font-size:.75rem; font-weight:600; }
+.btn-signed { background:#d4edda; color:#155724; border:1px solid #c3e6cb; font-size:.72rem; font-weight:600; padding:.25rem .6rem; border-radius:4px; text-decoration:none; white-space:nowrap; }
+.btn-signed:hover { background:#c3e6cb; }
 
 /* Filter bar */
 .filter-bar { padding:1rem 1.25rem; margin-bottom:1rem; }

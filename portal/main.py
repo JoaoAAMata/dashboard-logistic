@@ -311,6 +311,7 @@ async def logistics_dashboard(request: Request, status: str = ""):
         "active_filter": status or "all",
         "counts": counts,
         "stores": stores,
+        "signed_pdf_ids": _signed_pdf_ids(all_transfers),
     })
 
 
