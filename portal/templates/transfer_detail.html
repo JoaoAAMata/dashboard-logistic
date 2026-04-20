@@ -31,12 +31,13 @@
 <div class="status-banner status-{{ transfer.status }}">
   <strong>Status:</strong>
   {% if transfer.status == 'pending' %}⏳ Pending — awaiting review
+  {% elif transfer.status == 'collected' %}🚚 Collected by transporter — awaiting logistics review
   {% elif transfer.status == 'approved' %}✅ Approved
   {% else %}❌ Rejected{% if transfer.rejection_reason %} — {{ transfer.rejection_reason }}{% endif %}
   {% endif %}
 </div>
 
-{% if transfer.status == 'pending' %}
+{% if transfer.status in ('pending', 'collected') %}
 <div class="action-bar">
   <form method="post" action="/logistics/transfer/{{ transfer.id }}/approve" style="display:inline">
     <button type="submit" class="btn btn-success">✅ Approve</button>

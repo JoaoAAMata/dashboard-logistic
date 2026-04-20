@@ -296,6 +296,7 @@ async def logistics_dashboard(request: Request, status: str = ""):
     counts = {
         "all":       len(all_transfers),
         "pending":   sum(1 for t in all_transfers if t["status"] == "pending"),
+        "collected": sum(1 for t in all_transfers if t["status"] == "collected"),
         "approved":  sum(1 for t in all_transfers if t["status"] == "approved"),
         "warehouse": sum(1 for t in all_transfers if t["status"] == "warehouse"),
         "rejected":  sum(1 for t in all_transfers if t["status"] == "rejected"),
@@ -406,6 +407,21 @@ async def reject(request: Request, tid: int, reason: str = Form("")):
         return RedirectResponse("/login")
     database.update_transfer_status(tid, "rejected", reason)
     return RedirectResponse(f"/logistics/transfer/{tid}?rejected=1", status_code=302)
+
+
+@app.post("/store/transfer/{tid}/mark-collected")
+async def store_mark_collected(request: Request, tid: int):
+    """Store confirms the transporter has collected the items."""
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    # Only allow if transfer belongs to this store and is still pending
+    transfer = database.get_transfer_detail(tid)
+    if not transfer or transfer["from_store_id"] != s["store_id"]:
+        return RedirectResponse("/store")
+    if transfer["status"] == "pending":
+        database.update_transfer_status(tid, "collected")
+    return RedirectResponse("/store?collected=1", status_code=302)
 
 
 @app.post("/store/transfer/{tid}/receipt")
