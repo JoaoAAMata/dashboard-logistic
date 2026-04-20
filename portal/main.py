@@ -185,6 +185,7 @@ async def store_dashboard(request: Request):
     return templates.TemplateResponse("store_dashboard.html", {
         "request": request, "session": s,
         "transfers": transfers, "incoming": incoming,
+        "signed_pdf_ids": _signed_pdf_ids(transfers),
     })
 
 
@@ -334,6 +335,7 @@ async def transfer_detail(request: Request, tid: int):
     return templates.TemplateResponse("transfer_detail.html", {
         "request": request, "session": s,
         "transfer": transfer, "stores": stores,
+        "has_signed_pdf": os.path.exists(_signed_pdf_path(tid)),
     })
 
 
@@ -422,6 +424,50 @@ async def store_mark_collected(request: Request, tid: int):
     if transfer["status"] == "approved":
         database.update_transfer_status(tid, "collected")
     return RedirectResponse("/store?collected=1", status_code=302)
+
+
+@app.post("/store/transfer/{tid}/upload-signed")
+async def store_upload_signed_pdf(request: Request, tid: int, file: UploadFile = File(...)):
+    """Store uploads the signed collection PDF (signed by transporter + store)."""
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    transfer = database.get_transfer_detail(tid)
+    if not transfer or transfer["from_store_id"] != s["store_id"]:
+        return RedirectResponse("/store")
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext != ".pdf":
+        return RedirectResponse("/store?upload_error=1", status_code=302)
+    content = await file.read()
+    with open(_signed_pdf_path(tid), "wb") as f:
+        f.write(content)
+    return RedirectResponse("/store?signed_uploaded=1", status_code=302)
+
+
+@app.get("/transfer/{tid}/signed-pdf")
+async def download_signed_pdf(request: Request, tid: int):
+    """Download the signed PDF for a transfer."""
+    s = get_session(request)
+    if not s:
+        return RedirectResponse("/login")
+    transfer = database.get_transfer_detail(tid)
+    if not transfer:
+        return RedirectResponse("/")
+    # Only originating store, destination store, admin, or transporter can download
+    if not s["is_admin"] and not s.get("is_transporter"):
+        if transfer["from_store_id"] != s["store_id"] and transfer["to_store_id"] != s["store_id"]:
+            return RedirectResponse("/store")
+    path = _signed_pdf_path(tid)
+    if not os.path.exists(path):
+        return RedirectResponse("/store")
+    with open(path, "rb") as f:
+        data = f.read()
+    filename = f"{transfer['collect_no']}_SIGNED.pdf"
+    return Response(
+        content=data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @app.post("/store/transfer/{tid}/receipt")
@@ -633,6 +679,19 @@ async def serve_stock_data(request: Request):
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Cache-Control": "no-cache"},
     )
+
+
+# ── Signed PDF storage ───────────────────────────────────────────────────────
+
+_SIGNED_PDF_DIR = os.path.join(os.path.dirname(os.path.abspath(database.DB_PATH)), "signed_pdfs")
+os.makedirs(_SIGNED_PDF_DIR, exist_ok=True)
+
+def _signed_pdf_path(tid: int) -> str:
+    return os.path.join(_SIGNED_PDF_DIR, f"signed_{tid}.pdf")
+
+def _signed_pdf_ids(transfer_list) -> set:
+    """Return set of transfer IDs that have a signed PDF uploaded."""
+    return {t["id"] for t in transfer_list if os.path.exists(_signed_pdf_path(t["id"]))}
 
 
 # ── Monthly file helper ───────────────────────────────────────────────────────

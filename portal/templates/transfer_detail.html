@@ -47,6 +47,10 @@
     <input type="hidden" name="reason" id="reject-reason"/>
     <button type="submit" class="btn btn-danger">❌ Reject</button>
   </form>
+  <a href="/transfer/{{ transfer.id }}/pdf" class="btn btn-secondary">⬇ PDF</a>
+  {% if has_signed_pdf %}
+  <a href="/transfer/{{ transfer.id }}/signed-pdf" class="btn btn-success">✅ Download Signed PDF</a>
+  {% endif %}
 </div>
 {% endif %}
 

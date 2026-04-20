@@ -16,6 +16,12 @@
 {% if request.query_params.get('collected') %}
 <div class="alert alert-success">✅ Marked as collected by transporter. Logistics has been notified.</div>
 {% endif %}
+{% if request.query_params.get('signed_uploaded') %}
+<div class="alert alert-success">✅ Signed PDF uploaded successfully.</div>
+{% endif %}
+{% if request.query_params.get('upload_error') %}
+<div class="alert alert-error">❌ Only PDF files are accepted.</div>
+{% endif %}
 
 {% if transfers %}
 <div class="card">
@@ -56,14 +62,37 @@
           {% elif t.status == 'incorrect' %}⚠️ Incorrect
           {% else %}❌ Rejected{% endif %}
         </span></td>
-        <td style="min-width:170px">
+        <td style="min-width:200px">
           {% if t.status == 'approved' %}
           <form method="post" action="/store/transfer/{{ t.id }}/mark-collected"
                 onsubmit="return confirm('Confirm that the transporter has collected this transfer?')">
             <button type="submit" class="btn btn-sm btn-collect">🚚 Transporter Collected</button>
           </form>
+          {% elif t.status == 'collected' %}
+          <div style="display:flex;flex-direction:column;gap:.4rem">
+            <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
+            {% if t.id in signed_pdf_ids %}
+            <a href="/transfer/{{ t.id }}/signed-pdf" class="btn btn-sm btn-success" style="font-size:.72rem">✅ Signed PDF</a>
+            {% else %}
+            <button type="button" class="btn btn-sm btn-upload-signed"
+                    onclick="toggleSignedUpload({{ t.id }})">📎 Upload Signed PDF</button>
+            <div id="signed-upload-{{ t.id }}" style="display:none;margin-top:.3rem">
+              <form method="post" action="/store/transfer/{{ t.id }}/upload-signed"
+                    enctype="multipart/form-data">
+                <input type="file" name="file" accept=".pdf" required
+                       style="font-size:.72rem;width:100%;margin-bottom:.3rem">
+                <button type="submit" class="btn btn-sm btn-primary" style="width:100%">Upload</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
           {% elif t.status not in ('pending', 'rejected') %}
-          <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
+          <div style="display:flex;flex-direction:column;gap:.4rem">
+            <a href="/transfer/{{ t.id }}/pdf" class="btn btn-sm btn-secondary">⬇ PDF</a>
+            {% if t.id in signed_pdf_ids %}
+            <a href="/transfer/{{ t.id }}/signed-pdf" class="btn btn-sm btn-success" style="font-size:.72rem">✅ Signed PDF</a>
+            {% endif %}
+          </div>
           {% endif %}
         </td>
       </tr>
@@ -194,6 +223,8 @@
 .btn-warning:hover { background:#e0a800; }
 .btn-collect  { background:#0c5fa5; color:#fff; border:none; font-size:.75rem; padding:.3rem .8rem; border-radius:6px; cursor:pointer; font-weight:600; transition:background .15s; white-space:nowrap; }
 .btn-collect:hover { background:#0a4f8a; }
+.btn-upload-signed { background:#f5f5f3; color:#444; border:1px solid #d0d0cc; font-size:.72rem; padding:.25rem .7rem; border-radius:6px; cursor:pointer; font-weight:600; transition:background .15s; }
+.btn-upload-signed:hover { background:#e8e8e4; }
 </style>
 <script>
 function submitReceipt(tid, status) {
@@ -210,6 +241,10 @@ function toggleIncorrect(tid) {
 }
 function showChangeReceipt(tid) {
   const div = document.getElementById('change-receipt-' + tid);
+  if (div) div.style.display = div.style.display === 'none' ? '' : 'none';
+}
+function toggleSignedUpload(tid) {
+  const div = document.getElementById('signed-upload-' + tid);
   if (div) div.style.display = div.style.display === 'none' ? '' : 'none';
 }
 </script>
