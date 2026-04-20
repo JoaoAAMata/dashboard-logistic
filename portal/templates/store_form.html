@@ -248,32 +248,41 @@ switchType(currentType);
 
 // ── Form validation ──────────────────────────────────────────
 document.getElementById('transfer-form').addEventListener('submit', function(e) {
-  if (currentType !== 'decoration') return; // stock form uses native required attrs
-
   const errors = [];
 
-  // Top-level fields
-  const toStore = document.querySelector('select[name="to_store_id"]').value;
+  // Common fields (both types)
+  const toStore      = document.querySelector('select[name="to_store_id"]').value;
   const deliveryDate = document.querySelector('input[name="delivery_date"]').value;
   const ctn = parseInt(document.getElementById('input-ctn').value) || 0;
   const rln = parseInt(document.getElementById('input-rln').value) || 0;
 
   if (!toStore)      errors.push('Please select a Destination Store.');
   if (!deliveryDate) errors.push('Please enter an Expected Delivery Date.');
-  if (ctn === 0 && rln === 0) errors.push('Please enter at least Total Cartons or Total Railings.');
+  if (ctn === 0 && rln === 0) errors.push('Please enter at least Total Cartons or Total Railings (cannot both be 0).');
 
-  // Decoration line items
-  const rows = document.querySelectorAll('#decoration-body .line-row');
-  rows.forEach((row, i) => {
-    const desc  = row.querySelector('input[name="descriptions"]')?.value.trim() || '';
-    const qty   = parseInt(row.querySelector('input[name="quantities"]')?.value) || 0;
-    const photo = row.querySelector('input[name="photos"]');
-    const hasPhoto = photo && photo.files && photo.files.length > 0;
+  if (currentType === 'decoration') {
+    // Decoration line items — all fields + photo required
+    const rows = document.querySelectorAll('#decoration-body .line-row');
+    rows.forEach((row, i) => {
+      const desc  = row.querySelector('input[name="descriptions"]')?.value.trim() || '';
+      const qty   = parseInt(row.querySelector('input[name="quantities"]')?.value) || 0;
+      const photo = row.querySelector('input[name="photos"]');
+      const hasPhoto = photo && photo.files && photo.files.length > 0;
 
-    if (!desc)     errors.push(`Line ${i+1}: Description is required.`);
-    if (qty <= 0)  errors.push(`Line ${i+1}: Quantity must be at least 1.`);
-    if (!hasPhoto) errors.push(`Line ${i+1}: Photo is required for decoration items.`);
-  });
+      if (!desc)     errors.push(`Line ${i+1}: Description is required.`);
+      if (qty <= 0)  errors.push(`Line ${i+1}: Quantity must be at least 1.`);
+      if (!hasPhoto) errors.push(`Line ${i+1}: Photo is required for decoration items.`);
+    });
+  } else {
+    // Stock — at least one line with quantity > 0
+    const rows = document.querySelectorAll('#commercial-body .line-row');
+    let hasQty = false;
+    rows.forEach((row, i) => {
+      const qty = parseInt(row.querySelector('input[name="quantities"]')?.value) || 0;
+      if (qty > 0) hasQty = true;
+    });
+    if (!hasQty) errors.push('Please enter a quantity greater than 0 in at least one line.');
+  }
 
   if (errors.length > 0) {
     e.preventDefault();
