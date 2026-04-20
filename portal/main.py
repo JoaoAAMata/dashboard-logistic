@@ -414,6 +414,20 @@ async def reject(request: Request, tid: int, reason: str = Form("")):
     return RedirectResponse(f"/logistics/transfer/{tid}?rejected=1", status_code=302)
 
 
+@app.post("/store/transfer/{tid}/delete")
+async def store_delete_transfer(request: Request, tid: int):
+    """Store can delete their own transfer only while it is still pending."""
+    s = get_session(request)
+    if not s or s["is_admin"] or s.get("is_transporter"):
+        return RedirectResponse("/login")
+    transfer = database.get_transfer_detail(tid)
+    if not transfer or transfer["from_store_id"] != s["store_id"]:
+        return RedirectResponse("/store")
+    if transfer["status"] == "pending":
+        database.delete_transfer(tid)
+    return RedirectResponse("/store?deleted=1", status_code=302)
+
+
 @app.post("/store/transfer/{tid}/mark-collected")
 async def store_mark_collected(request: Request, tid: int):
     """Store confirms the transporter has collected the items."""
