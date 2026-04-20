@@ -513,16 +513,17 @@ async def transporter_dashboard(request: Request):
     in_transit   = [t for t in all_transfers if t["to_store_id"] != dhl_store_id]
     wh_receipts  = [t for t in all_transfers if t["to_store_id"] == dhl_store_id]
     counts = {
-        "awaiting":  sum(1 for t in in_transit  if t["status"] == "approved"),
+        "awaiting":  sum(1 for t in in_transit  if t["status"] in ("approved", "collected")),
         "warehouse": sum(1 for t in in_transit  if t["status"] == "warehouse"),
         "delivered": sum(1 for t in in_transit  if t["status"] in ("completed", "incorrect")),
-        "wh_pending":   sum(1 for t in wh_receipts if t["status"] in ("approved", "warehouse")),
+        "wh_pending":   sum(1 for t in wh_receipts if t["status"] in ("approved", "collected", "warehouse")),
         "wh_completed": sum(1 for t in wh_receipts if t["status"] in ("completed", "incorrect")),
     }
     return templates.TemplateResponse("transporter_dashboard.html", {
         "request": request, "session": s,
         "in_transit": in_transit, "wh_receipts": wh_receipts,
         "counts": counts, "today": date.today().isoformat(),
+        "signed_pdf_ids": _signed_pdf_ids(all_transfers),
     })
 
 
