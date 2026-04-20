@@ -602,7 +602,7 @@ def get_transfers_for_transporter():
         FROM transfers t
         JOIN stores sf ON sf.id = t.from_store_id
         JOIN stores st ON st.id = t.to_store_id
-        WHERE t.status IN ('approved', 'warehouse', 'completed', 'incorrect')
+        WHERE t.status IN ('approved', 'collected', 'warehouse', 'completed', 'incorrect')
         ORDER BY t.collection_date ASC
     """).fetchall()
     conn.close()
